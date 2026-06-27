@@ -63,7 +63,151 @@ function renderMarkdownTable(rows) {
   ].join("\n");
 }
 
-function htmlToMarkdown(html) {
+function stripTags(value = "") {
+  return cleanInline(
+    String(value)
+      .replace(/<span class="arrow">[\s\S]*?<\/span>/g, " → ")
+      .replace(/<br\s*\/?>/g, "\n")
+      .replace(/<[^>]+>/g, " ")
+  );
+}
+
+function escapeMermaidLabel(value = "") {
+  return stripTags(value).replaceAll('"', '\\"');
+}
+
+function findBalancedDivEnd(html, startIndex) {
+  const tokenRe = /<\/?div\b[^>]*>/gi;
+  tokenRe.lastIndex = startIndex;
+  let depth = 0;
+  let match;
+  while ((match = tokenRe.exec(html))) {
+    const isClosing = /^<\//.test(match[0]);
+    depth += isClosing ? -1 : 1;
+    if (depth === 0) return tokenRe.lastIndex;
+  }
+  return -1;
+}
+
+function replaceBalancedDivs(html, className, renderBlock) {
+  let result = "";
+  let cursor = 0;
+  const startRe = new RegExp(`<div\\b(?=[^>]*class="[^"]*${className}[^"]*")[^>]*>`, "gi");
+  let match;
+  while ((match = startRe.exec(html))) {
+    const start = match.index;
+    const end = findBalancedDivEnd(html, start);
+    if (end === -1) break;
+    result += html.slice(cursor, start);
+    result += renderBlock(html.slice(start, end));
+    cursor = end;
+    startRe.lastIndex = end;
+  }
+  return result + html.slice(cursor);
+}
+
+function extractElementsByClass(html, classPattern) {
+  const elements = [];
+  const tagRe = /<([a-zA-Z0-9-]+)\b([^>]*)>/g;
+  let match;
+  while ((match = tagRe.exec(html))) {
+    const [raw, tagName, attrs] = match;
+    const classValue = (attrs.match(/class="([^"]*)"/) || [])[1] || "";
+    if (!classPattern.test(classValue)) continue;
+    const close = new RegExp(`</${tagName}>`, "i");
+    close.lastIndex = tagRe.lastIndex;
+    const rest = html.slice(tagRe.lastIndex);
+    const closeMatch = close.exec(rest);
+    if (!closeMatch) continue;
+    const inner = rest.slice(0, closeMatch.index);
+    elements.push(stripTags(inner));
+  }
+  return elements.filter(Boolean);
+}
+
+function renderFlowCanvas(block) {
+  const hasBranches = /class="[^"]*\bpaths\b/.test(block);
+  const start = extractElementsByClass(block, /\bstep--decision\b/)[0];
+
+  if (hasBranches && start) {
+    const branches = [];
+    const branchRe = /<div\b(?=[^>]*class="[^"]*\bpath\b[^"]*")[^>]*>/gi;
+    let match;
+    while ((match = branchRe.exec(block))) {
+      const end = findBalancedDivEnd(block, match.index);
+      if (end === -1) break;
+      const branch = block.slice(match.index, end);
+      const labels = extractElementsByClass(branch, /\b(path-tag|step)\b/);
+      if (labels.length) branches.push(labels);
+      branchRe.lastIndex = end;
+    }
+
+    if (branches.length) {
+      const lines = ["```mermaid", "flowchart LR", `  start["${escapeMermaidLabel(start)}"]`];
+      branches.forEach((labels, branchIndex) => {
+        let previous = "start";
+        labels.forEach((label, labelIndex) => {
+          const id = `b${branchIndex}_${labelIndex}`;
+          lines.push(`  ${previous} --> ${id}["${escapeMermaidLabel(label)}"]`);
+          previous = id;
+        });
+      });
+      lines.push("```");
+      return lines.join("\n");
+    }
+  }
+
+  const labels = extractElementsByClass(block, /\bstep\b/);
+  if (labels.length >= 2) {
+    const lines = ["```mermaid", "flowchart LR"];
+    labels.forEach((label, index) => {
+      lines.push(`  n${index + 1}["${escapeMermaidLabel(label)}"]`);
+      if (index > 0) lines.push(`  n${index} --> n${index + 1}`);
+    });
+    lines.push("```");
+    return lines.join("\n");
+  }
+
+  return `> 流程：${stripTags(block)}`;
+}
+
+function renderDecisionTree(block) {
+  const question = stripTags((block.match(/<div class="dtree-q">([\s\S]*?)<\/div>/) || [])[1] || "决策");
+  const branches = [];
+  const branchRe = /<div\b(?=[^>]*class="[^"]*\bdtree-branch\b[^"]*")[^>]*>/gi;
+  let match;
+  while ((match = branchRe.exec(block))) {
+    const end = findBalancedDivEnd(block, match.index);
+    if (end === -1) break;
+    const branch = block.slice(match.index, end);
+    const tag = stripTags((branch.match(/<span class="[^"]*\bdtree-tag\b[^"]*">([\s\S]*?)<\/span>/) || [])[1] || "分支");
+    const body = htmlToMarkdown((branch.match(/<div class="dtree-body">([\s\S]*?)<\/div>/) || [])[1] || "");
+    branches.push({ tag, body });
+    branchRe.lastIndex = end;
+  }
+
+  if (!branches.length) return `**${question}**\n\n${stripTags(block)}`;
+
+  return `**${question}**\n\n${branches
+    .map((branch) => `- **${branch.tag}**：${branch.body.replace(/\n/g, "\n  ")}`)
+    .join("\n")}`;
+}
+
+function protectMarkdownBlock(blocks, content) {
+  const index = blocks.push(content) - 1;
+  return `\n\n@@MDBLOCK${index}@@\n\n`;
+}
+
+function preprocessHtml(html, protectedBlocks) {
+  let next = html;
+  next = replaceBalancedDivs(next, "flow-canvas", (block) => protectMarkdownBlock(protectedBlocks, renderFlowCanvas(block)));
+  next = replaceBalancedDivs(next, "dtree", (block) => protectMarkdownBlock(protectedBlocks, renderDecisionTree(block)));
+  return next;
+}
+
+function htmlToMarkdown(html, options = {}) {
+  const protectedBlocks = options.protectedBlocks || [];
+  if (!options.preprocessed) html = preprocessHtml(html, protectedBlocks);
   let output = "";
   const links = [];
   const lists = [];
@@ -287,7 +431,8 @@ function htmlToMarkdown(html) {
   return normalizeBlankLines(output)
     .split("\n")
     .map((line) => line.trimEnd())
-    .join("\n");
+    .join("\n")
+    .replace(/@@MDBLOCK(\d+)@@/g, (_, index) => `\n\n${protectedBlocks[Number(index)] || ""}\n\n`);
 }
 
 function renderToc(doc) {
@@ -302,7 +447,9 @@ function renderDoc(doc) {
   const sections = (doc.sections || [])
     .filter((section) => (section.status || "") !== "archived")
     .map((section) => {
-      const body = htmlToMarkdown(section.bodyHtml || section.body_html || "");
+      const protectedBlocks = [];
+      const html = preprocessHtml(section.bodyHtml || section.body_html || "", protectedBlocks);
+      const body = htmlToMarkdown(html, { preprocessed: true, protectedBlocks });
       return `<a id="${section.id}"></a>\n\n${body}`;
     })
     .join("\n\n---\n\n");
