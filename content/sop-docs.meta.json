@@ -1,0 +1,297 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-06-27T08:39:25.401Z",
+  "docs": [
+    {
+      "id": "order",
+      "label": "订单全流程 SOP",
+      "outputFile": "订单全流程SOP.html",
+      "title": "订单全流程标准工作流程",
+      "globalNavBrand": "订单管理 · 标准工作流程",
+      "docBrand": "订单全流程 SOP",
+      "version": "v6 · 2026-05",
+      "eyebrow": "订单管理 · 内部 SOP",
+      "h1": "订单全流程标准工作流程",
+      "lede": "从订单生成到出库完成的主线，加上与之并行的售后分支。每一个操作都按统一卡片描述，方便快速定位执行。",
+      "tocGroups": [
+        {
+          "title": "",
+          "links": [
+            {
+              "id": "intro",
+              "label": "阅读指南",
+              "sub": false
+            },
+            {
+              "id": "lifecycle",
+              "label": "生命周期总图",
+              "sub": false
+            }
+          ]
+        },
+        {
+          "title": "",
+          "links": [
+            {
+              "id": "create",
+              "label": "一、订单创建",
+              "sub": false
+            },
+            {
+              "id": "review",
+              "label": "二、订单审核",
+              "sub": false
+            },
+            {
+              "id": "inventory",
+              "label": "三、库存判定",
+              "sub": false
+            },
+            {
+              "id": "purchase",
+              "label": "四、商品采购",
+              "sub": false
+            },
+            {
+              "id": "prep",
+              "label": "五、出库准备",
+              "sub": false
+            },
+            {
+              "id": "ship",
+              "label": "六、商品出库",
+              "sub": false
+            }
+          ]
+        },
+        {
+          "title": "",
+          "links": [
+            {
+              "id": "afters",
+              "label": "七、售后总览",
+              "sub": false
+            },
+            {
+              "id": "pre-ship",
+              "label": "八、发货前退换货",
+              "sub": false
+            },
+            {
+              "id": "post-ship",
+              "label": "九、发货后退换货",
+              "sub": false
+            },
+            {
+              "id": "offline",
+              "label": "十、线下换货",
+              "sub": false
+            }
+          ]
+        },
+        {
+          "title": "",
+          "links": [
+            {
+              "id": "data",
+              "label": "十一、基础数据维护",
+              "sub": false
+            },
+            {
+              "id": "data-school",
+              "label": "新学校建档",
+              "sub": true
+            },
+            {
+              "id": "data-sku",
+              "label": "新商品建档",
+              "sub": true
+            },
+            {
+              "id": "data-class",
+              "label": "订单分类",
+              "sub": true
+            },
+            {
+              "id": "data-misc",
+              "label": "尺码 / 套装 / 仓库",
+              "sub": true
+            }
+          ]
+        }
+      ],
+      "sections": [
+        {
+          "id": "intro",
+          "file": "order/01-intro.md"
+        },
+        {
+          "id": "lifecycle",
+          "file": "order/02-lifecycle.md"
+        },
+        {
+          "id": "create",
+          "file": "order/03-create.md"
+        },
+        {
+          "id": "review",
+          "file": "order/04-review.md"
+        },
+        {
+          "id": "inventory",
+          "file": "order/05-inventory.md"
+        },
+        {
+          "id": "purchase",
+          "file": "order/06-purchase.md"
+        },
+        {
+          "id": "prep",
+          "file": "order/07-prep.md"
+        },
+        {
+          "id": "ship",
+          "file": "order/08-ship.md"
+        },
+        {
+          "id": "afters",
+          "file": "order/09-afters.md"
+        },
+        {
+          "id": "pre-ship",
+          "file": "order/10-pre-ship.md"
+        },
+        {
+          "id": "post-ship",
+          "file": "order/11-post-ship.md"
+        },
+        {
+          "id": "offline",
+          "file": "order/12-offline.md"
+        },
+        {
+          "id": "data",
+          "file": "order/13-data.md"
+        }
+      ]
+    },
+    {
+      "id": "aftersales",
+      "label": "售后标准工作流程",
+      "outputFile": "售后标准工作流程.html",
+      "title": "售后标准工作流程",
+      "globalNavBrand": "售后 SOP · 内部文档",
+      "docBrand": "售后 SOP",
+      "version": "v2 · 2026-05",
+      "eyebrow": "订单管理 · 售后",
+      "h1": "售后标准工作流程",
+      "lede": "",
+      "tocGroups": [
+        {
+          "title": "",
+          "links": [
+            {
+              "id": "overview",
+              "label": "整体流程",
+              "sub": false
+            }
+          ]
+        },
+        {
+          "title": "",
+          "links": [
+            {
+              "id": "before",
+              "label": "调货前",
+              "sub": false
+            },
+            {
+              "id": "after",
+              "label": "调货后",
+              "sub": false
+            },
+            {
+              "id": "after-states",
+              "label": "五种状态",
+              "sub": true
+            },
+            {
+              "id": "after-main",
+              "label": "主流程",
+              "sub": true
+            },
+            {
+              "id": "after-judge",
+              "label": "回仓判定",
+              "sub": true
+            },
+            {
+              "id": "shipped",
+              "label": "发货后",
+              "sub": false
+            }
+          ]
+        },
+        {
+          "title": "",
+          "links": [
+            {
+              "id": "rule-release",
+              "label": "库存释放",
+              "sub": false
+            },
+            {
+              "id": "rule-residual",
+              "label": "剩货记录单",
+              "sub": false
+            },
+            {
+              "id": "rule-time",
+              "label": "单据生成时点",
+              "sub": false
+            },
+            {
+              "id": "rule-confusing",
+              "label": "容易混的点",
+              "sub": false
+            }
+          ]
+        }
+      ],
+      "sections": [
+        {
+          "id": "overview",
+          "file": "aftersales/01-overview.md"
+        },
+        {
+          "id": "before",
+          "file": "aftersales/02-before.md"
+        },
+        {
+          "id": "after",
+          "file": "aftersales/03-after.md"
+        },
+        {
+          "id": "shipped",
+          "file": "aftersales/04-shipped.md"
+        },
+        {
+          "id": "rule-release",
+          "file": "aftersales/05-rule-release.md"
+        },
+        {
+          "id": "rule-residual",
+          "file": "aftersales/06-rule-residual.md"
+        },
+        {
+          "id": "rule-time",
+          "file": "aftersales/07-rule-time.md"
+        },
+        {
+          "id": "rule-confusing",
+          "file": "aftersales/08-rule-confusing.md"
+        }
+      ]
+    }
+  ]
+}

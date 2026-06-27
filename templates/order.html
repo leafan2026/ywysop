@@ -1,0 +1,2903 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>订单全流程标准工作流程</title>
+
+<script>
+  /* 立即给 <html> 加 has-reveal，避免首屏闪烁 */
+  document.documentElement.classList.add('has-reveal');
+</script>
+
+<style>
+  :root {
+    --primary: #0066cc;
+    --primary-focus: #0071e3;
+
+    --ink: #1d1d1f;
+    --ink-80: #333333;
+    --ink-48: #6e6e73;
+    --ink-30: #86868b;
+
+    --canvas: #ffffff;
+    --parchment: #f5f5f7;
+    --surface-pearl: #fafafc;
+    --surface-black: #000000;
+
+    --divider: #f0f0f0;
+    --hairline: #e0e0e0;
+    --line: #c7c7cc;
+
+    --r-sm: 8px;
+    --r-md: 11px;
+    --r-lg: 18px;
+    --r-pill: 9999px;
+
+    --s-xs: 8px;
+    --s-sm: 12px;
+    --s-md: 17px;
+    --s-lg: 24px;
+    --s-xl: 32px;
+    --s-xxl: 48px;
+    --s-section: 80px;
+
+    --font-display: "SF Pro Display", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --font-text: "SF Pro Text", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+    --sidebar-w: 280px;
+    --content-max: 820px;
+    --nav-h: 44px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-font-smoothing: antialiased; scroll-behavior: smooth; }
+  body {
+    font-family: var(--font-text);
+    font-size: 17px;
+    line-height: 1.47;
+    letter-spacing: -0.374px;
+    color: var(--ink);
+    background: var(--canvas);
+    overflow-x: hidden;
+  }
+
+  /* ───────── Global nav ───────── */
+  .global-nav {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--surface-black); color: #fff;
+    height: var(--nav-h);
+    display: flex; align-items: center; gap: 14px;
+    padding: 0 16px 0 12px;
+  }
+  .global-nav-brand {
+    font-family: var(--font-text);
+    font-size: 12px; line-height: 1; letter-spacing: -0.12px; color: #fff;
+  }
+  .nav-toggle {
+    display: none; background: transparent; border: 0; padding: 8px;
+    cursor: pointer; width: 36px; height: 36px;
+    align-items: center; justify-content: center;
+    flex-direction: column; gap: 4px; border-radius: var(--r-sm);
+  }
+  .nav-toggle span {
+    display: block; width: 16px; height: 1.5px; background: #fff;
+    border-radius: 2px; transition: transform 0.2s, opacity 0.2s;
+  }
+  .nav-toggle[aria-expanded="true"] span:nth-child(1) { transform: translateY(5.5px) rotate(45deg); }
+  .nav-toggle[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+  .nav-toggle[aria-expanded="true"] span:nth-child(3) { transform: translateY(-5.5px) rotate(-45deg); }
+
+  .nav-overlay {
+    display: none; position: fixed; inset: var(--nav-h) 0 0 0;
+    background: rgba(0,0,0,0.32);
+    backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+    z-index: 90; opacity: 0; transition: opacity 0.2s;
+  }
+  .nav-overlay.open { display: block; opacity: 1; }
+
+  /* ───────── Doc layout ───────── */
+  .doc {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) 1fr;
+    min-height: calc(100vh - var(--nav-h));
+  }
+  .sidebar {
+    background: var(--parchment);
+    border-right: 1px solid var(--hairline);
+    position: sticky; top: var(--nav-h);
+    height: calc(100vh - var(--nav-h));
+    overflow-y: auto;
+    padding: var(--s-xl) 0 var(--s-xxl) 0;
+  }
+  .sidebar-inner { padding: 0 var(--s-lg); }
+  .doc-brand {
+    font-family: var(--font-display);
+    font-size: 21px; font-weight: 600; line-height: 1.19; letter-spacing: 0.231px;
+    color: var(--ink);
+  }
+  .doc-version {
+    font-family: var(--font-text);
+    font-size: 12px; line-height: 1.3; letter-spacing: -0.12px;
+    color: var(--ink-48);
+    margin-top: 4px; margin-bottom: var(--s-xl);
+  }
+  .toc { display: flex; flex-direction: column; gap: 1px; }
+  .toc-group {
+    display: flex; flex-direction: column; gap: 1px;
+    margin-top: 22px; padding-top: 22px;
+    border-top: 1px solid var(--divider);
+  }
+  .toc a {
+    display: block; padding: 6px 10px;
+    font-family: var(--font-text);
+    font-size: 14px; line-height: 1.43; letter-spacing: -0.224px;
+    color: var(--ink-80); text-decoration: none;
+    border-radius: var(--r-sm);
+    transition: background 0.15s, color 0.15s;
+  }
+  .toc a:hover { background: rgba(0,0,0,0.04); color: var(--ink); }
+  .toc a.sub {
+    padding: 4px 10px 4px 26px;
+    font-size: 13px; color: var(--ink-48);
+    position: relative;
+  }
+  .toc a.sub::before {
+    content: ''; position: absolute;
+    left: 14px; top: 50%;
+    width: 6px; height: 1px;
+    background: var(--ink-30); opacity: 0.5;
+  }
+  .toc a.sub:hover { color: var(--ink-80); }
+
+  .content { padding: 0; min-width: 0; }
+  .content-inner { max-width: none; min-width: 0; }
+
+  /* ───────── Doc header ───────── */
+  .doc-header {
+    padding: 80px var(--s-section) 8px;
+    background: var(--canvas);
+  }
+  .doc-header > * {
+    max-width: var(--content-max);
+    margin-left: auto; margin-right: auto;
+  }
+  .eyebrow {
+    font-family: var(--font-text);
+    font-size: 13px; font-weight: 600; line-height: 1.3;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ink-48); margin-bottom: var(--s-sm);
+  }
+  .doc-header h1 {
+    font-family: var(--font-display);
+    font-size: 40px; font-weight: 600; line-height: 1.1; letter-spacing: -0.012em;
+    color: var(--ink);
+  }
+  .doc-header .lede {
+    margin-top: var(--s-md);
+    font-size: 19px; line-height: 1.42; letter-spacing: -0.022em;
+    color: var(--ink-48); font-weight: 400;
+  }
+
+  /* ───────── Sections ───────── */
+  main section {
+    padding: 72px var(--s-section); margin: 0;
+    scroll-margin-top: calc(var(--nav-h) + 24px);
+    background: var(--canvas);
+  }
+  main section > * {
+    max-width: var(--content-max);
+    margin-left: auto; margin-right: auto;
+  }
+  main section:nth-of-type(even) { background: var(--parchment); }
+
+  /* 卡片 surface 永远与章节背景反色 */
+  main section:nth-of-type(even) .flow-canvas,
+  main section:nth-of-type(even) .tbl,
+  main section:nth-of-type(even) .notice,
+  main section:nth-of-type(even) .op-unit,
+  main section:nth-of-type(even) .alert,
+  main section:nth-of-type(even) .dtree,
+  main section:nth-of-type(even) .sub-block,
+  main section:nth-of-type(even) .link-card {
+    background: var(--canvas);
+  }
+  main section:nth-of-type(even) .op-row,
+  main section:nth-of-type(even) .alert-body {
+    background: var(--canvas);
+  }
+  main section:nth-of-type(even) .scroll-hint-pill {
+    background: linear-gradient(
+      to right,
+      rgba(255,255,255,0) 0%,
+      rgba(174,174,178,0.10) 55%,
+      rgba(174,174,178,0.22) 100%);
+  }
+
+  h2 {
+    font-family: var(--font-display);
+    font-size: 28px; font-weight: 600; line-height: 1.2; letter-spacing: -0.018em;
+    color: var(--ink); margin-bottom: var(--s-md);
+  }
+  h3 {
+    font-family: var(--font-display);
+    font-size: 21px; font-weight: 600; line-height: 1.24; letter-spacing: -0.005em;
+    color: var(--ink);
+    margin-top: var(--s-xl); margin-bottom: var(--s-sm);
+  }
+  h4 {
+    font-family: var(--font-display);
+    font-size: 17px; font-weight: 600; line-height: 1.3; letter-spacing: -0.005em;
+    color: var(--ink);
+    margin-top: var(--s-lg); margin-bottom: var(--s-xs);
+  }
+  p {
+    font-family: var(--font-text);
+    font-size: 17px; line-height: 1.47; letter-spacing: -0.374px;
+    color: var(--ink-80); margin-bottom: var(--s-sm);
+  }
+  p:last-child { margin-bottom: 0; }
+  strong { font-weight: 600; color: var(--ink); }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ───────── Inline chips (符号约定可视化) ───────── */
+  .chip {
+    display: inline-block;
+    padding: 1px 7px;
+    font-family: var(--font-text);
+    font-size: 13.5px;
+    line-height: 1.45;
+    letter-spacing: -0.18px;
+    vertical-align: baseline;
+    white-space: nowrap;
+  }
+  a.chip { text-decoration: none; }
+  a.chip:hover { text-decoration: none; filter: brightness(0.97); }
+  a.chip:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+  /* 《工作表》：白底 + hairline */
+  .chip--sheet {
+    background: var(--canvas);
+    color: var(--ink);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+  }
+  main section:nth-of-type(even) .chip--sheet { background: var(--canvas); }
+  /* 「视图」：仅 typographic，italic + ink-48 + 实下划线 */
+  .chip--view {
+    color: var(--ink-48);
+    font-style: italic;
+    border-bottom: 1px solid var(--ink-30);
+    padding: 0 2px;
+  }
+  /* 🔘【按钮】：黑底白字 pill */
+  .chip--btn {
+    background: var(--ink);
+    color: #fff;
+    border-radius: var(--r-pill);
+    padding: 1px 9px;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: -0.1px;
+  }
+  /* 『字段』：dashed underline */
+  .chip--field {
+    color: var(--ink);
+    border-bottom: 1px dashed var(--ink-48);
+    padding: 0 1px;
+    font-weight: 400;
+  }
+  /* "状态"：1.5px 黑边 + 小号大写 */
+  .chip--state {
+    background: var(--canvas);
+    color: var(--ink);
+    border: 1.5px solid var(--ink);
+    border-radius: 3px;
+    padding: 0 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1.5;
+  }
+  /* 内联：✨ 系统自动 / 📍 位置 */
+  .auto {
+    color: var(--ink-48);
+    font-size: 14.5px;
+  }
+  .auto::before {
+    content: '✦';
+    margin-right: 4px;
+    color: var(--ink-30);
+    font-size: 11px;
+    vertical-align: 1px;
+  }
+  .loc {
+    color: var(--ink-48);
+    font-family: var(--font-text);
+  }
+  .loc-pin {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border: 1px solid var(--ink-48);
+    border-radius: 50%;
+    vertical-align: 1px;
+    margin-right: 5px;
+  }
+  /* 字段路径中的 → */
+  .arrow {
+    color: var(--ink-30);
+    padding: 0 4px;
+    font-weight: 400;
+  }
+
+  /* ───────── Operation unit card ───────── */
+  .op-unit {
+    margin-top: var(--s-md);
+    margin-bottom: var(--s-md);
+    background: var(--canvas);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+  }
+  .op-row {
+    display: grid;
+    grid-template-columns: 78px 1fr;
+    gap: var(--s-lg);
+    padding: 14px 22px;
+    border-top: 1px solid var(--divider);
+    background: var(--canvas);
+  }
+  .op-row:first-child { border-top: none; }
+  .op-label {
+    font-family: var(--font-text);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-48);
+    padding-top: 5px;
+    align-self: start;
+  }
+  .op-body {
+    font-family: var(--font-text);
+    font-size: 16px;
+    line-height: 1.55;
+    letter-spacing: -0.32px;
+    color: var(--ink-80);
+  }
+  .op-body p { font-size: 16px; margin-bottom: var(--s-xs); color: var(--ink-80); }
+  .op-body p:last-child { margin-bottom: 0; }
+  .op-body ol, .op-body ul {
+    list-style: none;
+    counter-reset: opstep;
+  }
+  .op-body ol > li {
+    counter-increment: opstep;
+    position: relative;
+    padding-left: 26px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    border-top: 1px solid var(--divider);
+  }
+  .op-body ol > li:first-child { border-top: none; padding-top: 0; }
+  .op-body ol > li::before {
+    content: counter(opstep);
+    position: absolute;
+    left: 0; top: 6px;
+    width: 18px; height: 18px;
+    border: 1px solid var(--ink-30);
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-48);
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+  }
+  .op-body ol > li:first-child::before { top: 0; }
+  .op-body ul > li {
+    position: relative;
+    padding-left: 16px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+  .op-body ul > li::before {
+    content: '';
+    position: absolute;
+    left: 2px; top: 13px;
+    width: 4px; height: 1px;
+    background: var(--ink-30);
+  }
+  .op-body .tbl { margin-top: 8px; margin-bottom: 0; }
+
+  .screenshot {
+    margin-top: 14px;
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-md);
+    background: var(--canvas);
+    overflow: hidden;
+  }
+  .screenshot img {
+    display: block;
+    width: 100%;
+    height: auto;
+    cursor: zoom-in;
+  }
+  .screenshot .caption {
+    margin: 0;
+    padding: 11px 14px 13px;
+    border-top: 1px solid var(--divider);
+    font-size: 14px;
+    line-height: 1.42;
+    letter-spacing: -0.18px;
+    color: var(--ink-48);
+  }
+  .op-unit > .screenshot {
+    margin: 0;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    border-radius: 0;
+  }
+
+  .image-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
+    background: rgba(0,0,0,0.82);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .image-lightbox.open { display: flex; }
+  .image-lightbox img {
+    display: block;
+    max-width: min(100%, 1400px);
+    max-height: calc(100vh - 96px);
+    width: auto;
+    height: auto;
+    border-radius: var(--r-md);
+    background: #fff;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.42);
+  }
+  .image-lightbox-close {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.16);
+    color: #fff;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .image-lightbox-close:hover { background: rgba(255,255,255,0.24); }
+
+  /* ───────── Alerts ───────── */
+  .alert {
+    margin-top: var(--s-md);
+    margin-bottom: var(--s-md);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-md);
+    background: var(--canvas);
+    overflow: hidden;
+  }
+  .alert--severe { border-left: 3px solid var(--ink); }
+  .alert-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--divider);
+  }
+  .alert-tag {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink);
+    padding: 3px 9px;
+    border: 1px solid var(--ink);
+    border-radius: var(--r-pill);
+  }
+  .alert--soft .alert-tag {
+    border-color: var(--ink-48);
+    color: var(--ink-48);
+  }
+  .alert-title {
+    font-size: 14.5px;
+    color: var(--ink-80);
+    font-weight: 600;
+  }
+  .alert-body {
+    padding: 14px 18px;
+    font-size: 14.5px;
+    line-height: 1.55;
+    color: var(--ink-80);
+    background: var(--canvas);
+  }
+  .alert-body p { font-size: 14.5px; color: var(--ink-80); margin-bottom: 6px; }
+  .alert-body p:last-child { margin-bottom: 0; }
+
+  /* Inline ⚠️ notice (replaces blockquote style) */
+  .notice {
+    margin-top: var(--s-sm);
+    margin-bottom: var(--s-sm);
+    padding: 12px 16px;
+    background: var(--parchment);
+    border-radius: var(--r-md);
+    font-size: 14px;
+    line-height: 1.5;
+    letter-spacing: -0.224px;
+    color: var(--ink-48);
+  }
+  .notice strong { color: var(--ink-80); font-weight: 600; }
+  .notice::before {
+    content: '提示';
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-48);
+    padding: 1px 7px;
+    border: 1px solid var(--ink-30);
+    border-radius: 3px;
+    margin-right: 9px;
+    vertical-align: 1px;
+  }
+
+  /* ───────── Flow canvas (复用售后) ───────── */
+  .flow-canvas {
+    margin-top: var(--s-lg);
+    margin-bottom: var(--s-md);
+    background: var(--parchment);
+    border-radius: var(--r-lg);
+    padding: 36px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  /* 加宽变体：突破 820 max-width，给生命周期等节点密度大的流程图用 */
+  main section > .flow-canvas--wide {
+    max-width: 1080px;
+  }
+  .scroll-hint-pill {
+    position: absolute; top: 0; right: 0; bottom: 0;
+    width: 40px;
+    background: linear-gradient(
+      to right,
+      rgba(245,245,247,0) 0%,
+      rgba(174,174,178,0.10) 55%,
+      rgba(174,174,178,0.22) 100%);
+    z-index: 3; opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+  .scroll-hint-pill .hint-text {
+    position: absolute; top: 50%; right: 10px;
+    transform: translateY(-50%);
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-family: "FangSong","STFangsong","FangSong_GB2312","Songti SC","STSong",serif;
+    font-size: 13px; font-weight: 400;
+    color: var(--ink-48);
+    letter-spacing: 0.18em;
+    white-space: nowrap;
+  }
+  .flow-canvas.has-overflow:not(.at-end) .scroll-hint-pill { opacity: 1; }
+
+  .flow {
+    display: flex; align-items: center; gap: 0;
+    width: 100%;
+    font-family: var(--font-text);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  .flow::-webkit-scrollbar { height: 6px; }
+  .flow::-webkit-scrollbar-track { background: transparent; }
+  .flow::-webkit-scrollbar-thumb { background: var(--hairline); border-radius: 999px; }
+
+  .step {
+    display: inline-flex;
+    align-items: center; justify-content: center;
+    padding: 9px 16px;
+    border-radius: var(--r-pill);
+    font-family: var(--font-text);
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.35;
+    letter-spacing: -0.2px;
+    background: #fff;
+    color: var(--ink);
+    border: 1px solid var(--hairline);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .step small { color: var(--ink-48); margin-left: 6px; font-size: 12px; }
+  .step--terminal { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .step--decision { border-width: 1.5px; border-color: var(--ink); font-weight: 600; }
+  .step--output { background: var(--parchment); color: var(--ink); border-color: var(--hairline); font-weight: 600; }
+  main section:nth-of-type(even) .step--output { background: var(--parchment); }
+  .step--link {
+    text-decoration: none;
+    color: var(--primary);
+    border-color: var(--hairline);
+    background: #fff;
+    font-weight: 600;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  a.step--link:hover {
+    border-color: var(--primary);
+    color: var(--primary-focus);
+    text-decoration: none;
+  }
+  .step--special { background: var(--ink); color: #fff; border-color: var(--ink); font-weight: 600; }
+  .step--muted { color: var(--ink-48); border-style: dashed; }
+  .step--stack { flex-direction: column; padding: 8px 14px; line-height: 1.3; }
+  .step--stack .step-sub { font-size: 11px; color: var(--ink-48); margin-top: 2px; }
+  .step--terminal .step-sub, .step--special .step-sub, .step--output .step-sub { color: rgba(255,255,255,0.72); }
+  .step--output .step-sub { color: var(--ink-48); }
+
+  .line {
+    display: inline-block; flex-shrink: 0;
+    width: 28px; height: 1.25px;
+    background: var(--line);
+    position: relative;
+    margin: 0 4px;
+  }
+  .line::after {
+    content: ''; position: absolute;
+    right: -1px; top: 50%;
+    transform: translateY(-50%);
+    width: 0; height: 0;
+    border-left: 5px solid var(--line);
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+  }
+  .line--long { width: 40px; }
+  .line--short { width: 18px; }
+  .line--noarrow { width: 18px; }
+  .line--noarrow::after { display: none; }
+
+  .branches {
+    display: inline-flex; flex-direction: column; gap: 10px;
+    flex-shrink: 0; position: relative;
+    padding-left: 14px;
+  }
+  .branches::before {
+    content: ''; position: absolute;
+    left: 0; top: 18px; bottom: 18px;
+    width: 1.25px; background: var(--line);
+  }
+  .branches::after {
+    content: ''; position: absolute;
+    left: -8px; top: 50%;
+    transform: translateY(-50%);
+    width: 8px; height: 1.25px; background: var(--line);
+  }
+  .branch { display: inline-flex; align-items: center; gap: 0; }
+  .branch-label {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-48);
+    min-width: 36px;
+    margin: 0 6px;
+  }
+
+  .paths {
+    display: inline-flex; flex-direction: column; gap: 16px;
+    flex-shrink: 0; position: relative;
+    padding-left: 14px;
+  }
+  .paths::before {
+    content: ''; position: absolute;
+    left: 0; top: 18px; bottom: 18px;
+    width: 1.25px; background: var(--line);
+  }
+  .paths::after {
+    content: ''; position: absolute;
+    left: -8px; top: 50%;
+    transform: translateY(-50%);
+    width: 8px; height: 1.25px; background: var(--line);
+  }
+  .path { display: inline-flex; align-items: center; gap: 0; }
+  .path-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-48);
+    margin: 0 6px;
+    min-width: 64px;
+  }
+  .path-tag--wide { min-width: 96px; }
+
+  .merge {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    position: relative;
+    width: 14px;
+    height: 60px;
+    margin-right: -2px;
+  }
+  .merge::before {
+    content: ''; position: absolute;
+    left: 0; top: 10%; bottom: 10%;
+    width: 1.25px; background: var(--line);
+  }
+  .merge::after {
+    content: ''; position: absolute;
+    right: 0; top: 50%;
+    transform: translateY(-50%);
+    width: 14px; height: 1.25px; background: var(--line);
+  }
+  .merge--tall { height: 90px; }
+  .merge--xtall { height: 120px; }
+
+  .flow-caption {
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--ink-48);
+    letter-spacing: -0.224px;
+  }
+
+  /* ───────── Decision tree (替代 plaintext 决策树) ───────── */
+  .dtree {
+    margin-top: var(--s-md);
+    margin-bottom: var(--s-md);
+    background: var(--parchment);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-lg);
+    padding: 22px 24px;
+    font-family: var(--font-text);
+  }
+  .dtree-q {
+    font-size: 15.5px;
+    font-weight: 600;
+    color: var(--ink);
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .dtree-branches {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .dtree-branch {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    gap: 14px;
+    padding: 10px 0;
+    border-top: 1px solid var(--divider);
+  }
+  .dtree-branch:first-child { border-top: none; }
+  .dtree-tag {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-48);
+    padding: 4px 0;
+    text-align: center;
+    border: 1px solid var(--ink-30);
+    border-radius: var(--r-pill);
+    align-self: start;
+    height: 24px;
+    line-height: 14px;
+  }
+  .dtree-tag--yes { border-color: var(--ink); color: var(--ink); }
+  .dtree-tag--no { color: var(--ink-48); }
+  .dtree-body {
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--ink-80);
+  }
+  .dtree-body ol {
+    list-style: none;
+    counter-reset: dstep;
+  }
+  .dtree-body ol > li {
+    counter-increment: dstep;
+    position: relative;
+    padding-left: 22px;
+    padding-bottom: 4px;
+  }
+  .dtree-body ol > li::before {
+    content: counter(dstep) '.';
+    position: absolute;
+    left: 0; top: 0;
+    color: var(--ink-48);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .dtree-nested {
+    margin-top: 8px;
+    padding-left: 14px;
+    border-left: 1px solid var(--hairline);
+  }
+
+  /* ───────── Table ───────── */
+  .tbl {
+    margin-top: var(--s-md);
+    margin-bottom: var(--s-md);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    background: var(--canvas);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-text);
+    font-size: 15px;
+    line-height: 1.43;
+    letter-spacing: -0.224px;
+  }
+  th, td {
+    text-align: left;
+    vertical-align: top;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--divider);
+  }
+  tr:last-child td { border-bottom: none; }
+  th {
+    background: var(--parchment);
+    font-size: 12px; font-weight: 600;
+    color: var(--ink-48);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 10px 16px;
+  }
+  td { color: var(--ink-80); }
+  td strong { color: var(--ink); }
+  /* in even-section, table head reverses to canvas */
+  main section:nth-of-type(even) th { background: var(--parchment); }
+  /* Compact table for symbol legend */
+  .tbl--legend td { padding: 14px 16px; }
+  .tbl--legend td:first-child { width: 30%; }
+
+  /* ───────── Bullet list (高密度只读列表) ───────── */
+  ul.points { list-style: none; margin-top: var(--s-md); }
+  ul.points li {
+    padding: 12px 0;
+    border-top: 1px solid var(--divider);
+    font-family: var(--font-text);
+    font-size: 16px;
+    line-height: 1.5;
+    letter-spacing: -0.224px;
+    color: var(--ink-80);
+  }
+  ul.points li:first-child { border-top: none; }
+
+  /* ───────── Sub block (compact card inside section) ───────── */
+  .sub-block {
+    margin-top: var(--s-md);
+    margin-bottom: var(--s-md);
+    padding: 20px 22px;
+    background: var(--parchment);
+    border-radius: var(--r-lg);
+    border: 1px solid var(--hairline);
+  }
+  .sub-block h4 { margin-top: 0; margin-bottom: 6px; }
+  .sub-block p { font-size: 15.5px; color: var(--ink-80); }
+
+  /* Three-mode grid (judging mode A/B/C) */
+  .mode-grid {
+    margin-top: var(--s-md);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .mode-card {
+    padding: 22px 22px;
+    background: var(--canvas);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-lg);
+  }
+  main section:nth-of-type(even) .mode-card { background: var(--canvas); }
+  .mode-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--ink-48);
+    border: 1px solid var(--ink-30);
+    border-radius: var(--r-pill);
+    padding: 2px 9px;
+    margin-bottom: 10px;
+  }
+  .mode-card h4 { margin-top: 0; margin-bottom: 6px; font-size: 17px; }
+  .mode-card p { font-size: 14.5px; color: var(--ink-80); margin-bottom: 6px; }
+  .mode-card .mode-meta {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--ink-48);
+    line-height: 1.5;
+  }
+  .mode-card .mode-meta strong { color: var(--ink-80); font-weight: 600; }
+  @media (max-width: 900px) {
+    .mode-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Link card (家长自助查询等) */
+  .link-card {
+    margin-top: var(--s-md);
+    padding: 18px 22px;
+    background: var(--canvas);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .link-card-text { font-size: 15px; color: var(--ink-80); line-height: 1.5; }
+  .link-card-text strong { color: var(--ink); }
+  .link-card a {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary);
+    white-space: nowrap;
+  }
+
+  /* ───────── Reveal on scroll ───────── */
+  .has-reveal .doc-header,
+  .has-reveal main section {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.85s cubic-bezier(0.32, 0.72, 0, 1),
+                transform 0.85s cubic-bezier(0.32, 0.72, 0, 1);
+    will-change: opacity, transform;
+  }
+  .has-reveal .doc-header.is-in,
+  .has-reveal main section.is-in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .has-reveal .doc-header, .has-reveal main section {
+      opacity: 1; transform: none; transition: none;
+    }
+  }
+
+  /* ───────── Responsive ───────── */
+  @media (max-width: 1024px) {
+    :root { --sidebar-w: 240px; }
+  }
+  @media (max-width: 833px) {
+    .doc { grid-template-columns: 1fr; }
+    .nav-toggle { display: inline-flex; }
+    .sidebar {
+      position: fixed;
+      top: var(--nav-h); left: 0;
+      width: 280px; max-width: 84vw;
+      height: calc(100vh - var(--nav-h));
+      z-index: 95;
+      transform: translateX(-100%);
+      transition: transform 0.25s cubic-bezier(0.32,0.72,0,1);
+      border-right: 1px solid var(--hairline);
+    }
+    .sidebar.open {
+      transform: translateX(0);
+      box-shadow: 12px 0 32px rgba(0,0,0,0.08);
+    }
+    .content { padding: 0; max-width: 100%; }
+    .doc-header { padding: 48px var(--s-lg) 8px; }
+    .doc-header h1 { font-size: 30px; }
+    .doc-header .lede { font-size: 17px; }
+    main section { padding: 48px var(--s-lg); }
+    h2 { font-size: 24px; }
+    h3 { font-size: 18px; margin-top: var(--s-lg); }
+    h4 { font-size: 16px; }
+    p { font-size: 16px; }
+    .op-row { grid-template-columns: 64px 1fr; gap: 14px; padding: 12px 16px; }
+    .op-label { font-size: 10.5px; }
+    .op-body { font-size: 15px; }
+    .flow-canvas { padding: 22px 14px; }
+    .step { padding: 8px 13px; font-size: 13.5px; }
+    .line { width: 22px; margin: 0 3px; }
+    .line--long { width: 32px; }
+    .branch-label, .path-tag { font-size: 10.5px; min-width: 30px; margin: 0 4px; }
+    .path-tag--wide { min-width: 70px; }
+    .branches, .paths { gap: 8px; padding-left: 12px; }
+    .merge { width: 12px; height: 56px; }
+    .merge--tall { height: 80px; }
+    th, td { padding: 10px 12px; font-size: 14px; }
+    th { font-size: 11px; padding: 9px 12px; }
+    .dtree { padding: 16px 18px; }
+    .dtree-branch { grid-template-columns: 46px 1fr; gap: 10px; }
+    .mode-grid { grid-template-columns: 1fr; }
+    .link-card { flex-direction: column; align-items: flex-start; }
+  }
+  @media (max-width: 480px) {
+    .global-nav { padding: 0 12px 0 6px; gap: 8px; }
+    .doc-header { padding: 32px var(--s-md) 4px; }
+    main section { padding: 32px var(--s-md); }
+    .doc-header h1 { font-size: 26px; }
+    h2 { font-size: 21px; }
+    h3 { font-size: 17px; }
+    p { font-size: 15.5px; line-height: 1.55; }
+    .doc-brand { font-size: 18px; }
+    .flow-canvas { padding: 18px 12px; border-radius: var(--r-md); }
+    .scroll-hint-pill { width: 32px; }
+    .scroll-hint-pill .hint-text { font-size: 12px; right: 8px; letter-spacing: 0.16em; }
+    .step { padding: 7px 11px; font-size: 13px; }
+    .line { width: 18px; }
+    th, td { padding: 9px 10px; font-size: 13px; }
+    th { font-size: 10.5px; }
+    .tbl { border-radius: var(--r-md); }
+    .op-unit, .alert, .dtree, .sub-block, .screenshot { border-radius: var(--r-md); }
+    .op-row { padding: 10px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="global-nav">
+  <button class="nav-toggle" id="navToggle" aria-label="目录" aria-controls="sidebar" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+  <span class="global-nav-brand">订单管理 · 标准工作流程</span>
+</nav>
+
+<div class="nav-overlay" id="navOverlay"></div>
+
+<div class="doc">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-inner">
+      <div class="doc-brand">订单全流程 SOP</div>
+      <div class="doc-version">v6 · 2026-05</div>
+
+      <nav class="toc">
+          <a href="#intro">阅读指南</a>
+          <a href="#lifecycle">生命周期总图</a>
+
+        <div class="toc-group">
+          <a href="#create">一、订单创建</a>
+          <a href="#review">二、订单审核</a>
+          <a href="#inventory">三、库存判定</a>
+          <a href="#purchase">四、商品采购</a>
+          <a href="#prep">五、出库准备</a>
+          <a href="#ship">六、商品出库</a>
+        </div>
+
+        <div class="toc-group">
+          <a href="#afters">七、售后总览</a>
+          <a href="#pre-ship">八、发货前退换货</a>
+          <a href="#post-ship">九、发货后退换货</a>
+          <a href="#offline">十、线下换货</a>
+        </div>
+
+        <div class="toc-group">
+          <a href="#data">十一、基础数据维护</a>
+          <a href="#data-school" class="sub">新学校建档</a>
+          <a href="#data-sku" class="sub">新商品建档</a>
+          <a href="#data-class" class="sub">订单分类</a>
+          <a href="#data-misc" class="sub">尺码 / 套装 / 仓库</a>
+        </div>
+      </nav>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="content-inner">
+
+      <header class="doc-header">
+        <div class="eyebrow">订单管理 · 内部 SOP</div>
+        <h1>订单全流程标准工作流程</h1>
+        <p class="lede">从订单生成到出库完成的主线，加上与之并行的售后分支。每一个操作都按统一卡片描述，方便快速定位执行。</p>
+      </header>
+
+      <section id="intro">
+<h2>阅读指南</h2>
+        <p>主线是：订单创建 → 审核 → 库存判定 → 采购 → 出库准备 → 出库。售后是一组并行分支，订单在主线任何阶段都可能进入售后，处理完后回到主线对应状态。</p>
+        <p>每一个具体动作都按统一的"操作单元"卡片描述：</p>
+
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">什么时候做。例：订单进入"待判定"状态。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body">在哪个表 / 视图。例：<span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">商品出库单明细</span> <span class="arrow">→</span> <span class="chip chip--view">🔥 关联 SKU 为空</span></span>。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li>第一件事</li>
+                <li>第二件事</li>
+              </ol>
+            </div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">结果</span>
+            <div class="op-body">系统会发生什么。例：<span class="auto">订单出现在《销售订单》</span>。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">异常</span>
+            <div class="op-body">常见错误 + 处理方式。</div>
+          </div>
+        </div>
+
+        <h3>符号约定</h3>
+        <p>文档中所有专有标记都用统一的视觉样式呈现，便于扫读时立刻识别类型。</p>
+
+        <div class="tbl tbl--legend">
+          <table>
+            <thead><tr><th>类型</th><th>样式</th><th>含义</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>工作表</td>
+                <td><span class="chip chip--sheet">商品出库单明细</span></td>
+                <td>系统中的数据表，是订单与状态的载体</td>
+              </tr>
+              <tr>
+                <td>视图</td>
+                <td><span class="chip chip--view">🔥 关联 SKU 为空</span></td>
+                <td>工作表的筛选 / 排序视角</td>
+              </tr>
+              <tr>
+                <td>按钮</td>
+                <td><span class="chip chip--btn">发起判定</span></td>
+                <td>可点击的系统动作</td>
+              </tr>
+              <tr>
+                <td>字段</td>
+                <td><span class="chip chip--field">指定发货仓库</span></td>
+                <td>表中的某一列</td>
+              </tr>
+              <tr>
+                <td>状态值</td>
+                <td><span class="chip chip--state">锁库存</span></td>
+                <td>订单 / 库存的离散状态</td>
+              </tr>
+              <tr>
+                <td>位置</td>
+                <td><span class="loc"><span class="loc-pin"></span>《销售订单》<span class="arrow">→</span><span class="chip chip--view">只付运费</span></span></td>
+                <td>表 + 视图的完整路径</td>
+              </tr>
+              <tr>
+                <td>系统自动</td>
+                <td><span class="auto">自动推送至《销售订单》</span></td>
+                <td>无需人工干预，系统触发后自动发生</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>警示等级</h3>
+        <p>文档中所有提醒分为两个等级，按视觉权重区分：</p>
+
+        <div class="alert alert--severe">
+          <div class="alert-head">
+            <span class="alert-tag">不可逆 · 警示</span>
+            <span class="alert-title">数据损坏 / 难以回滚</span>
+          </div>
+          <div class="alert-body">
+            <p>独立成块、放在小节最前。常见：删除已审核数据、手动建虚拟移仓单、直接删退换货等。一旦出错难以回滚。</p>
+          </div>
+        </div>
+
+        <div class="notice"><strong>流程前提 / 易遗漏</strong>——保留在步骤原位。是必要校验或常被忽略的细节，例如：发财务前勾选「已调货」、核对推送条数等。</div>
+      </section>
+
+      <section id="lifecycle">
+<h2>订单生命周期</h2>
+        <p>下图展示主线 8 个阶段。售后分支与主线并行，订单在任意阶段都可进入售后再回流到对应状态。</p>
+
+        <div class="flow-canvas flow-canvas--wide">
+          <div class="flow">
+            <span class="step step--stack">
+              <span>线上 · 金数据</span>
+              <span class="step-sub">webhook 推送</span>
+            </span>
+            <span class="line line--short line--noarrow"></span>
+            <span class="step step--stack">
+              <span>线下批量导入</span>
+              <span class="step-sub">学校订购</span>
+            </span>
+            <span class="line line--short line--noarrow"></span>
+            <span class="step step--stack">
+              <span>客服补单</span>
+              <span class="step-sub">零散付款</span>
+            </span>
+            <span class="line"></span>
+
+            <span class="step step--terminal">订单创建</span>
+            <span class="line"></span>
+            <a href="#review" class="step step--link">① 订单审核</a>
+            <span class="line"></span>
+            <a href="#inventory" class="step step--link">② 库存判定</a>
+            <span class="line"></span>
+            <a href="#purchase" class="step step--link">③ 采购前后判定</a>
+            <span class="line"></span>
+            <span class="step step--output">锁库存 · 汇合</span>
+            <span class="line"></span>
+            <span class="step">④ 仓库二次复核</span>
+            <span class="line"></span>
+            <a href="#prep" class="step step--link">⑤ 合单 / 配货</a>
+            <span class="line"></span>
+            <a href="#ship" class="step step--link">⑥ 拣货出库</a>
+            <span class="line"></span>
+            <span class="step step--terminal">已出库</span>
+          </div>
+        </div>
+
+        <h3>并行的售后三分支</h3>
+        <p>每个分支对应主线的某个状态切片：</p>
+        <div class="flow-canvas">
+          <div class="flow">
+            <span class="step step--decision">售后申请</span>
+            <div class="paths">
+              <div class="path">
+                <span class="path-tag path-tag--wide">未出库</span>
+                <span class="line"></span>
+                <a href="#pre-ship" class="step step--link">发货前退换货</a>
+                <span class="line line--noarrow line--short"></span>
+                <span class="step step--muted">调货前 / 调货后</span>
+              </div>
+              <div class="path">
+                <span class="path-tag path-tag--wide">已出库</span>
+                <span class="line"></span>
+                <a href="#post-ship" class="step step--link">线上发货后退换货</a>
+                <span class="line line--noarrow line--short"></span>
+                <span class="step step--muted">内部 / 家长 → 回仓判定</span>
+              </div>
+              <div class="path">
+                <span class="path-tag path-tag--wide">在校现场</span>
+                <span class="line"></span>
+                <a href="#offline" class="step step--link">线下换货</a>
+                <span class="line line--noarrow line--short"></span>
+                <span class="step step--muted">收发一体化</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="create">
+<h2>一、订单创建</h2>
+        <p>把多渠道家长下单的数据统一汇聚到 <span class="chip chip--sheet">商品出库单明细</span>，作为后续所有流程的源头。</p>
+
+        <h3>1.1 线上 · 金数据 → 明道云</h3>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">家长在金数据下单后，由 webhook 自动推送。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span>金数据后台 <span class="arrow">→</span> 表单设置 <span class="arrow">→</span> 数据推送</span>。接收方为 <span class="chip chip--sheet">销售订单</span>。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li>配置 webhook 地址（按场景选择）：
+                  <div class="tbl">
+                    <table>
+                      <thead><tr><th>场景</th><th>地址前缀 <code>https://api.mingdao.com</code></th></tr></thead>
+                      <tbody>
+                        <tr><td>需要在线支付</td><td>…/workflow/hooks/NjdkY2MyNzJmYTFkMDk1YmIwZWNlNGYw</td></tr>
+                        <tr><td>无需在线支付 / 混合</td><td>…/workflow/hooks/Njg2MzNjNDJjNDRmYTUwMzExMDFiNDQ1</td></tr>
+                        <tr><td>伊为伊</td><td>…/workflow/hooks/Njg2MzcxNGRjNDJjNzAzZmVjZmU5YmJm</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </li>
+                <li>家长提交后 <span class="auto">自动推送至</span> <span class="chip chip--sheet">销售订单</span>。</li>
+              </ol>
+            </div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">结果</span>
+            <div class="op-body">订单出现在 <span class="chip chip--sheet">销售订单</span>，并同步生成 <span class="chip chip--sheet">商品出库单明细</span>。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">异常</span>
+            <div class="op-body">漏推 → 金数据后台 <span class="arrow">→</span> 数据页面 <span class="arrow">→</span> 给目标数据打任意颜色标记 <span class="arrow">→</span> <span class="auto">触发补推送</span>，回 <span class="chip chip--sheet">销售订单</span> 验证；记录在 <span class="chip chip--sheet">金数据漏推记录表</span>。</div>
+          </div>
+        </div>
+
+        <h3>1.2 线下批量导入 · 审批</h3>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">学校批量订购、需一次性导入多笔订单。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body">
+              <span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">线下导入出库单（非调换）</span></span>　·　<span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">付款记录</span></span>
+            </div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li>在 <span class="chip chip--sheet">线下导入出库单（非调换）</span>：
+                  <ul>
+                    <li>按模板填 Excel（学校 / 款号 / 规格 / 数量 / 收件人 / 金额）。</li>
+                    <li>导入 <span class="arrow">→</span> 核对字段映射 <span class="arrow">→</span> 确定。</li>
+                  </ul>
+                </li>
+                <li>在 <span class="chip chip--sheet">付款记录</span> 点击按钮发起审批，登记付款情况：
+                  <ul>
+                    <li>未收款 <span class="arrow">→</span> 付款渠道选 <span class="chip chip--state">欠款</span></li>
+                    <li>不需要付款 <span class="arrow">→</span> 付款渠道选 <span class="chip chip--state">无需付款</span></li>
+                  </ul>
+                </li>
+              </ol>
+            </div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">结果</span>
+            <div class="op-body">审批通过后，订单进入 <span class="chip chip--sheet">商品出库单明细</span>，等待二、订单审核。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">异常</span>
+            <div class="op-body">
+              <div class="tbl">
+                <table>
+                  <thead><tr><th>原因</th><th>检查方法</th><th>解决</th></tr></thead>
+                  <tbody>
+                    <tr><td>无存货档案 / SKU</td><td>在 <span class="chip chip--sheet">商品 SKU 及库存状态</span> 搜「款号+规格」</td><td>按 A.6 商品 SKU 维护添加</td></tr>
+                    <tr><td>学校商品目录无此 SKU</td><td>在 <span class="chip chip--sheet">学校商品目录名册</span> 搜「款号+学校」</td><td>新增目录记录</td></tr>
+                    <tr><td>款号格式错误</td><td>看导入报错</td><td>修 Excel</td></tr>
+                    <tr><td>必填字段空</td><td>看报错</td><td>补字段</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="notice">维护 <span class="chip chip--sheet">学校商品目录名册</span> 时，推荐从 <span class="chip chip--sheet">商品属性（辅助批次管理单价）</span> 导出已推送过的数据 → 导入到目录，比手填准确；<strong>导入前先备份</strong>。</div>
+            </div>
+          </div>
+        </div>
+
+        <h3>1.3 客服联系订购</h3>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">家长零散付款、未走标准下单流程，由客服补单。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">其他业务付款收款记录</span></span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li>客服与家长沟通，家长填收件信息 + 金额。</li>
+                <li>家长付款 <span class="arrow">→</span> 记收件手机号。</li>
+                <li>找到对应付款记录 <span class="arrow">→</span> <span class="chip chip--btn">一键创建客服销售订单</span>。</li>
+                <li>补订单信息 <span class="arrow">→</span> <span class="chip chip--btn">推送订单</span>。</li>
+              </ol>
+            </div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">结果</span>
+            <div class="op-body">订单进入 <span class="chip chip--sheet">商品出库单明细</span>。</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="review">
+<h2>二、订单审核</h2>
+        <p>在订单进入库存判定之前，确认每条明细的 SKU 关联、尺码合理性、付款类型。三件事都在 <span class="chip chip--sheet">商品出库单明细</span> 完成。</p>
+
+        <h3>2.1 关联 SKU</h3>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">订单创建后系统自动尝试关联；需要审核确认是否全部匹配成功。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">商品出库单明细</span> <span class="arrow">→</span> <span class="chip chip--view">🔥 关联 SKU 为空</span></span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li>打开视图 → 若为空，跳过本节。</li>
+                <li>视图有数据 → <span class="chip chip--btn">关联商品 SKU</span> 让系统重试。</li>
+                <li>仍有数据 → 检查 <span class="chip chip--sheet">商品 SKU 及库存状态</span> 是否存在该商品；不存在按 A.6 商品 SKU 维护 添加后回视图重试。</li>
+              </ol>
+            </div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">结果</span>
+            <div class="op-body">视图为空即视为通过。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">异常</span>
+            <div class="op-body">关联逻辑：<span class="chip chip--field">商品款号-辅助</span> = SKU 表款号 <strong>且</strong> <span class="chip chip--field">规格-辅助</span> = SKU 表规格，缺一不可。</div>
+          </div>
+        </div>
+
+        <h3>2.2 尺码审核</h3>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">系统标记"标准尺码与选择尺码相差 > 3"或对照表缺数据。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">商品出库单明细</span> <span class="arrow">→</span> <span class="chip chip--view">🔍 尺码审核</span></span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li>打开视图，逐条查看异常类型。</li>
+                <li>按下表对应处理：
+                  <div class="tbl">
+                    <table>
+                      <thead><tr><th>异常</th><th>示例</th><th>处理</th></tr></thead>
+                      <tbody>
+                        <tr><td>体重单位错</td><td>50 公斤填成 50（系统按斤算）</td><td>联系家长改</td></tr>
+                        <tr><td>对照表缺数据</td><td>身高 185 无对应尺码</td><td>按 A.5 身高尺码对照表 补</td></tr>
+                        <tr><td>家长故意选大 / 小码</td><td>想买大一码明年穿</td><td>备注 + 保留家长选择</td></tr>
+                        <tr><td>BMI 偏离正常区间</td><td>体型显示"超重 / 偏瘦"</td><td>结合 <span class="chip chip--field">体型</span> 字段提示，与家长确认款式</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </li>
+              </ol>
+            </div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">结果</span>
+            <div class="op-body">视图为空 / 数据合理 → 进入下一节。</div>
+          </div>
+        </div>
+
+        <h3>2.3 只付运费订单</h3>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">家长支付金额仅覆盖运费，未付商品款。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">销售订单</span> <span class="arrow">→</span> <span class="chip chip--view">可能只付了运费</span></span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li>应用筛选 <span class="chip chip--view">只付运费不看他</span>。</li>
+                <li>全选 <span class="arrow">→</span> <span class="chip chip--btn">编辑</span>，在 <span class="chip chip--field">备注</span> 填"只付运费"。</li>
+                <li><span class="chip chip--btn">只付物流费退款</span> 完成。</li>
+              </ol>
+            </div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">结果</span>
+            <div class="op-body"><span class="auto">系统排队退款</span>。</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="inventory">
+<h2>三、库存判定</h2>
+        <p>把订单分流到三种状态：<span class="chip chip--state">锁库存</span>（库存充足）/ <span class="chip chip--state">拆换标</span> / <span class="chip chip--state">调货中</span>（采购）。</p>
+        <p><strong>拆换标</strong>：把其他商品的校标换成扣货商品的校标，让那件货顶上来用。是否能拆换由 <strong>业务初判 + 裁缝复核</strong> 决定。</p>
+
+        <h3>3.1 发起整单出库快速判定</h3>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">订单审核通过、<span class="chip chip--field">出库状态</span> 为 <span class="chip chip--state">待判定</span>。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">商品出库单明细</span></span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li>选目标行 <span class="arrow">→</span> 把 <span class="chip chip--field">出库状态</span> 转 <span class="chip chip--state">库存判定中</span>。</li>
+                <li><span class="chip chip--btn">填写库存判定单</span> <span class="arrow">→</span> 手动新建 <span class="chip chip--sheet">快速库存判定表</span> 并填齐字段。</li>
+                <li>选判定模式（见 3.2）。</li>
+                <li><span class="chip chip--btn">发起判定</span>。</li>
+              </ol>
+            </div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">结果</span>
+            <div class="op-body">系统输出判定结果，按 3.3 分流。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">异常</span>
+            <div class="op-body">核对 <span class="chip chip--field">需要判定数量</span> = <span class="chip chip--field">完成判定数量</span>。不相等 → 重做；多次仍不一致 → 群里 @ 李凡。</div>
+          </div>
+        </div>
+
+        <h3>3.2 三种判定模式</h3>
+        <div class="mode-grid">
+          <div class="mode-card">
+            <span class="mode-tag">模式 A</span>
+            <h4>指定仓库优先</h4>
+            <p>优先消耗某个仓的库存。例：力旺高中仓积压货。</p>
+            <p class="mode-meta">
+              <strong>步骤</strong>　判定单勾选优先仓库 <span class="arrow">→</span> <span class="chip chip--btn">发起判定</span>。<br>
+              <strong>结果</strong>　优先仓充足 → <span class="auto">生成移仓明细</span>；不足时无事发生（不回退到其他模式）。
+            </p>
+          </div>
+          <div class="mode-card">
+            <span class="mode-tag">模式 B</span>
+            <h4>六仓轮询</h4>
+            <p>系统自动遍历所有学校仓 + 自动处理拆换标。年底积压场景首选。</p>
+            <p class="mode-meta">
+              <strong>命中规则</strong>　学校名称 + SKU 双维匹配。<br>
+              <strong>结果</strong>　命中非本校仓时 <span class="auto">自动写入 <span class="chip chip--field">拆换标备注</span> / <span class="chip chip--field">拆换标入库单</span> / <span class="chip chip--field">拆换商品款号</span></span>。
+            </p>
+          </div>
+          <div class="mode-card">
+            <span class="mode-tag">模式 C</span>
+            <h4>大仓直发</h4>
+            <p>不关心学校仓库存，只走大仓。</p>
+            <p class="mode-meta">
+              <strong>步骤</strong>　选大仓直发 <span class="arrow">→</span> <span class="chip chip--btn">发起判定</span>。<br>
+              <strong>结果</strong>　充足 / 可拆换标 → <span class="chip chip--state">锁库存</span>；不足 → 采购。
+            </p>
+          </div>
+        </div>
+
+        <h4>六仓轮询的判定顺序</h4>
+        <div class="flow-canvas">
+          <div class="flow">
+            <span class="step step--terminal">订单</span>
+            <span class="line"></span>
+            <span class="step step--decision">本校仓充足?</span>
+            <div class="branches">
+              <div class="branch">
+                <span class="branch-label">是</span>
+                <span class="line"></span>
+                <span class="step step--output">分配本校仓</span>
+              </div>
+              <div class="branch">
+                <span class="branch-label">否</span>
+                <span class="line"></span>
+                <span class="step step--decision">大仓充足?</span>
+                <div class="branches">
+                  <div class="branch">
+                    <span class="branch-label">是</span>
+                    <span class="line"></span>
+                    <span class="step step--output">分配大仓</span>
+                  </div>
+                  <div class="branch">
+                    <span class="branch-label">否</span>
+                    <span class="line"></span>
+                    <span class="step step--decision">其他 5 校仓可拆换?</span>
+                    <div class="branches">
+                      <div class="branch">
+                        <span class="branch-label">是</span>
+                        <span class="line"></span>
+                        <span class="step step--output">分配 + 生成移仓单</span>
+                      </div>
+                      <div class="branch">
+                        <span class="branch-label">否</span>
+                        <span class="line"></span>
+                        <span class="step step--decision">拆换标可行?</span>
+                        <div class="branches">
+                          <div class="branch">
+                            <span class="branch-label">是</span>
+                            <span class="line"></span>
+                            <span class="step step--output">生成拆换入库单</span>
+                          </div>
+                          <div class="branch">
+                            <span class="branch-label">否</span>
+                            <span class="line"></span>
+                            <a href="#purchase" class="step step--link">进入采购</a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="flow-caption">命中即出库时直接扣减拆换库存，<strong>不要手动二次操作</strong>。</p>
+        </div>
+
+        <h3>3.3 判定结果分流</h3>
+        <div class="tbl">
+          <table>
+            <thead><tr><th>结果</th><th>系统自动</th><th>你要做的</th></tr></thead>
+            <tbody>
+              <tr><td>无缺货</td><td><span class="auto">锁定库存</span></td><td>等进入 五、出库准备</td></tr>
+              <tr><td>拆换标</td><td><span class="auto">生成正负拆换标入库单 + 锁库存</span></td><td>见 3.3.1 通知仓库</td></tr>
+              <tr><td>库存不足</td><td><span class="auto">生成采购单 + 渠道序号</span></td><td>见 3.3.2 转采购</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4 id="inv-331">3.3.1 拆换标后续</h4>
+        <p>角色：业务 → 仓库。</p>
+        <ol class="dtree-body" style="font-size: 15.5px; line-height: 1.6;">
+          <li style="padding-left: 22px; position: relative;"><span style="position: absolute; left: 0; color: var(--ink-48); font-weight: 600;">1.</span>业务导出系统生成的正负拆换标入库单。</li>
+          <li style="padding-left: 22px; position: relative;"><span style="position: absolute; left: 0; color: var(--ink-48); font-weight: 600;">2.</span>仓库换标完成。</li>
+        </ol>
+        <div class="notice">拆换入库单生成时即为 <span class="chip chip--state">已入库</span>，<strong>无需手动改状态</strong>；若有差异由仓库二次复核（3.5）处理。</div>
+
+        <h4 id="inv-332">3.3.2 库存不足后续</h4>
+        <p>角色：业务 → 财务。</p>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li>打开系统生成的采购单 <span class="arrow">→</span> 记单号。</li>
+                <li>导出 <span class="chip chip--view">集团导入格式明细</span>。</li>
+                <li>发财务时 <strong>勾选「已调货」</strong>。</li>
+                <li>跟进采购交期。</li>
+                <li>到货 <span class="arrow">→</span> <span class="auto">订单自动解锁</span>。</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <h3>3.4 扣货无实物在途二次复核</h3>
+        <p>仓库标记"扣货无实物"时，实物可能正在总部到仓的途中；先用本流程自动核对，避免误判为缺货。</p>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">仓库标记"扣货无实物"。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">仓库扣货工作处理</span></span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <p>点 <span class="chip chip--btn">查是不是在途</span>，系统按下列规则查询：</p>
+              <ul>
+                <li>直接扣货 → 使用扣货的 SKU</li>
+                <li>拆换扣货 → 使用拆换的 SKU</li>
+                <li>判断方法：入库明细中已入库但入库时间为空的 SKU 总数 − 出库明细中锁库存且非本批次的 SKU = 在途未扣货数</li>
+              </ul>
+            </div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">结果</span>
+            <div class="op-body">备注中记录"在途可扣数量"；具体渠道可在 <span class="chip chip--sheet">仓库导航仪</span> 仪表盘查询。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">异常</span>
+            <div class="op-body">在途数 = 0 → 进入 3.5 仓库二次复核。</div>
+          </div>
+        </div>
+
+        <h3>3.5 仓库二次复核 · 账实不符</h3>
+        <p>在途复核确认不是采购在途后，由系统自动生成扣货处理表，让仓库手机端处理。</p>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">仓库实物清点与系统记录不符。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">业务锁库存账实不符记录和处理流程单</span></span>（仓库入口：<span class="chip chip--sheet">仓库扣货工作处理工作流</span>）</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <p>按下表对应填写复核动作；系统自动处理。</p>
+              <div class="tbl">
+                <table>
+                  <thead><tr><th>场景</th><th>异常</th><th>复核动作（仓库填）</th><th>系统自动</th></tr></thead>
+                  <tbody>
+                    <tr><td>直接扣货</td><td>扣货无实物</td><td>填 <span class="chip chip--field">实际可扣数量</span></td><td>改出库单 / 不足转 <span class="chip chip--state">调货中</span> / 生成负入库单清零</td></tr>
+                    <tr><td>拆换标</td><td>拆换标无实物</td><td>填 <span class="chip chip--field">可拆换数量</span></td><td>不足转 <span class="chip chip--state">调货中</span> / 改拆换入库单 / 负入库单清零</td></tr>
+                    <tr><td>拆换标</td><td>无法拆换</td><td>勾「无法拆换」+ 填 <span class="chip chip--field">可拆数量</span></td><td>改拆换入库单 / 不足转 <span class="chip chip--state">调货中</span></td></tr>
+                    <tr><td>拆换标</td><td>修改拆换</td><td>选新拆换 SKU + 填 <span class="chip chip--field">可拆数量</span></td><td>更新拆换 SKU / 不足转 <span class="chip chip--state">调货中</span></td></tr>
+                    <tr><td>调货</td><td>仓库实际有货</td><td>填 <span class="chip chip--field">实际库存数</span></td><td>生成入库单 / <span class="chip chip--state">调货中</span> → <span class="chip chip--state">锁库存</span></td></tr>
+                    <tr><td>调货</td><td>可拆换替代</td><td>选拆换 SKU + 填 <span class="chip chip--field">可拆数量</span></td><td>生成拆换入库单 / <span class="chip chip--state">调货中</span> → <span class="chip chip--state">锁库存</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p style="margin-top: 12px;"><strong>示例</strong>　SKU-A 计划扣 10 件，仓库实际 9 件 → 填 9 → <span class="auto">扣 9 件 + 1 件转调货 + 生成入库单 A −1 件清零</span>。</p>
+            </div>
+          </div>
+        </div>
+        <div class="notice"><strong>适用范围</strong>　目前仅大仓；学校仓暂不支持自动生成扣货计划表。</div>
+      </section>
+
+      <section id="purchase">
+<h2>四、商品采购</h2>
+        <p>库存不足时自动生成采购单。本章覆盖采购前对账、采购入库、采购后锁库存。</p>
+
+        <h3>4.1 采购前专项判定</h3>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">采购单沉淀一段时间后才发财务，期间可能有退款回仓导致采购量虚高，需重新对账。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">入库单</span></span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li>在 <span class="chip chip--sheet">入库单</span> 搜采购单号。</li>
+                <li><span class="chip chip--btn">调货前库存判定</span>。</li>
+                <li>侧边栏弹三个数：
+                  <ul>
+                    <li><span class="chip chip--field">拟调货数</span>　采购单当前调货量</li>
+                    <li><span class="chip chip--field">实时可用库存数量</span>　执行判定后还能锁库存的数量</li>
+                    <li><span class="chip chip--field">应修正</span>　拟调货 − 实时可用（多调的量）</li>
+                  </ul>
+                </li>
+                <li>审批通过 <span class="arrow">→</span> <span class="auto">自动修正出库单 + 入库明细</span>。</li>
+              </ol>
+            </div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">异常</span>
+            <div class="op-body">审批不通过 → 无事发生，需重新发起。</div>
+          </div>
+        </div>
+
+        <h3>4.2 采购单入库</h3>
+        <p>财务收到采购到货实物时执行。位置：<span class="chip chip--sheet">入库单</span>。两个方案：</p>
+
+        <div class="sub-block">
+          <h4>方案一 · 批量修改原入库明细（推荐）</h4>
+          <p>位置：<span class="chip chip--sheet">财务批量处理采购单单价等</span></p>
+          <div class="op-unit">
+            <div class="op-row">
+              <span class="op-label">步骤</span>
+              <div class="op-body">
+                <ol>
+                  <li>添加新记录 <span class="arrow">→</span> 勾选 <span class="chip chip--field">业务采购单修正数量和单价?</span>。</li>
+                  <li>关联入库单（<strong>只能关联一个</strong>）。</li>
+                  <li>上传明细，格式：<code style="font-family: var(--font-mono); font-size: 13px;">需调货基础款号｜规格｜数量｜入库成本单价</code>。</li>
+                  <li><span class="chip chip--btn">业务采购单修正数量和单价</span>。</li>
+                  <li>进入对应入库单核对入库总数：有问题找李凡，无问题转 4.3。</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sub-block">
+          <h4>方案二 · 快速执行（兜底）</h4>
+          <div class="op-unit">
+            <div class="op-row">
+              <span class="op-label">步骤</span>
+              <div class="op-body">
+                <ol>
+                  <li><span class="chip chip--sheet">入库单</span> <span class="arrow">→</span> <span class="chip chip--btn">记录</span> 新建。</li>
+                  <li>选 Excel 导入（批量）或粘贴导入（少量）。</li>
+                  <li>选文件 <span class="arrow">→</span> 核对字段映射 <span class="arrow">→</span> 开始导入。</li>
+                  <li>核对：导入条数 = 实际条数。</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h3>4.3 采购后专项锁库存判定</h3>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">采购入库完成，需把库存锁定到对应订单。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">入库单</span></span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li>筛选目标入库单号 / 渠道编号。</li>
+                <li>批量操作 <span class="chip chip--view">入库明细</span> <span class="arrow">→</span> 删数据。</li>
+                <li>上传新明细，格式：<code style="font-family: var(--font-mono); font-size: 13px;">SKU｜数量｜入库成本单价</code>。</li>
+                <li><span class="chip chip--btn">专项锁库存</span>。</li>
+              </ol>
+            </div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">结果</span>
+            <div class="op-body">
+              <ul>
+                <li>采购不足 → <span class="auto">生成新采购单</span></li>
+                <li>采购充足 → <span class="auto">按销售顺序锁库存</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <h3>4.4 特做补差价记录单</h3>
+        <p>用于记录特做（非标准品）的补差价场景，便于财务对账。位置：<span class="chip chip--sheet">特做补差价记录单</span>。</p>
+      </section>
+
+      <section id="prep">
+<h2>五、出库准备</h2>
+        <p>合单的目的是把同一客户的多笔订单合并、节省运费；然后生成给仓库的拣货 Excel。</p>
+
+        <h3>5.1 合单判定</h3>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">一批订单全部 <span class="chip chip--state">锁库存</span> 后，准备出库前。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">整单出库快速判定单</span></span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li>选 <span class="chip chip--state">锁库存</span> 状态出库单 <span class="arrow">→</span> 转 <span class="chip chip--state">推单中</span>。</li>
+                <li>新建一条 <span class="chip chip--sheet">整单出库快速判定单</span>。</li>
+                <li><span class="chip chip--btn">发起判定</span>。</li>
+              </ol>
+            </div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">结果</span>
+            <div class="op-body"><span class="auto">系统标记疑似拆单 / 可合单</span>。</div>
+          </div>
+        </div>
+
+        <h3>5.2 处理欠货订单</h3>
+        <p>触发：合单判定标记"疑似拆单"。位置：<span class="chip chip--sheet">合单判定-快速辅助</span> <span class="arrow">→</span> <span class="chip chip--view">疑似拆单</span>。</p>
+
+        <div class="dtree">
+          <div class="dtree-q">订单允许拆单?</div>
+          <div class="dtree-branches">
+            <div class="dtree-branch">
+              <span class="dtree-tag dtree-tag--yes">是</span>
+              <div class="dtree-body">
+                <ol>
+                  <li>确认 <span class="chip chip--state">推单中</span>。</li>
+                  <li>有货商品正常出库（先发）。</li>
+                  <li>欠货商品到货后补发。</li>
+                </ol>
+              </div>
+            </div>
+            <div class="dtree-branch">
+              <span class="dtree-tag dtree-tag--no">否</span>
+              <div class="dtree-body">
+                <ol>
+                  <li><span class="chip chip--btn">退单中退回锁库存</span>。</li>
+                  <li>订单保持 <span class="chip chip--state">锁库存</span>。</li>
+                  <li>等欠货到齐一起发。</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="notice"><strong>异常</strong>　欠货已到但仍在 <span class="chip chip--state">锁库存</span> 状态 → <span class="chip chip--sheet">合单判定-快速辅助</span> <span class="arrow">→</span> <span class="chip chip--view">有欠货</span> <span class="arrow">→</span> 选订单 <span class="arrow">→</span> <span class="chip chip--btn">欠货锁库存转移到推单中</span>。通常是之前漏操作。</div>
+
+        <h3>5.3 一键出库准备</h3>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">5.2 所有欠货已处理。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">整单出库快速判定单</span></span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body"><strong>必须先完成 5.2</strong>（否则报错）<span class="arrow">→</span> <span class="chip chip--btn">一键出库准备</span>。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">结果</span>
+            <div class="op-body"><span class="auto"><span class="chip chip--state">推单中</span> → <span class="chip chip--state">等待出库</span></span>。</div>
+          </div>
+        </div>
+
+        <h3>5.4 生成配货资料</h3>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">进入 <span class="chip chip--state">等待出库</span> 状态、准备发给仓库。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">整单出库快速判定单</span> <span class="arrow">→</span> <span class="chip chip--sheet">配货单生成</span></span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li><span class="chip chip--btn">生成配货资料</span> <span class="arrow">→</span> <span class="auto">自动跳转</span>。</li>
+                <li>输入 <span class="chip chip--field">合单判定批次号</span>（如 <code style="font-family: var(--font-mono); font-size: 13px;">20260515</code>）。</li>
+                <li><span class="chip chip--btn">导出</span> 下载 Excel。</li>
+                <li>发给仓库拣货。</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="ship">
+<h2>六、商品出库</h2>
+        <p>把"等待出库"的订单变成"已出库"——根据是否填写收件地址，分送校与邮寄两条路径。</p>
+
+        <h3>6.1 送校 / 邮寄判定</h3>
+        <p>触发：订单 <span class="chip chip--state">等待出库</span>，需决定走送校还是邮寄。位置：<span class="chip chip--sheet">销售订单</span> / 合单判定结果。</p>
+        <div class="tbl">
+          <table>
+            <thead><tr><th>条件</th><th>走法</th></tr></thead>
+            <tbody>
+              <tr><td>没有写收件地址</td><td>送校（6.2）</td></tr>
+              <tr><td>写了收件地址 + 销售非售后出库 + 合单判定"已付快递费"</td><td>邮寄正常发货</td></tr>
+              <tr><td>写了收件地址 + 销售非售后出库 + 合单判定"未付快递费"</td><td>邮寄到付（<span class="chip chip--field">是否邮寄到付</span> = 是）</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="notice">合单判定时 <span class="auto">系统会自动判断客户是否付了快递费</span>，对应到 <span class="chip chip--field">是否邮寄到付</span> 字段。</div>
+
+        <h3>6.2 送校出库 · 三选一</h3>
+        <p>触发：配货 Excel 已发给仓库、商品已拣货完毕。位置见各方式。</p>
+        <div class="tbl">
+          <table>
+            <thead><tr><th>方式</th><th>入口</th><th>前提 / 说明</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>方式一<br>（推荐）</strong></td>
+                <td><span class="chip chip--sheet">整单出库快速判定单</span> 填 <span class="chip chip--field">送校出库时间</span> <span class="arrow">→</span> <span class="chip chip--btn">送校订单一键出库 / 更新出库时间</span></td>
+                <td>流程为 <span class="chip chip--state">配货资料生成完成</span></td>
+              </tr>
+              <tr>
+                <td><strong>方式二<br>（未上线）</strong></td>
+                <td><span class="chip chip--sheet">补充出库时间</span> 填渠道批次号 / 出库单序号 / 学校 / 时间 <span class="arrow">→</span> 执行</td>
+                <td>立项后上线</td>
+              </tr>
+              <tr>
+                <td><strong>方式三</strong></td>
+                <td><span class="chip chip--sheet">商品出库单明细</span> 筛选 <span class="arrow">→</span> 批量改 <span class="chip chip--field">出库状态</span> 和 <span class="chip chip--field">出库时间</span></td>
+                <td>手工兜底</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>6.3 邮寄出库 & 快递回传</h3>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">需要邮寄的订单出库；或仓库回传快递单号。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">快递信息</span></span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li>准备 Excel：必含 <span class="chip chip--field">原始 ISV</span>、<span class="chip chip--field">快递单号</span>、<span class="chip chip--field">出库时间</span>。</li>
+                <li>进入 <span class="chip chip--sheet">快递信息</span> <span class="arrow">→</span> <span class="chip chip--btn">导入</span> <span class="arrow">→</span> 核对字段 <span class="arrow">→</span> <span class="chip chip--btn">开始导入</span>。</li>
+                <li>选刚导入的数据 <span class="arrow">→</span> <span class="chip chip--btn">关联订单和出库信息</span>。</li>
+                <li>检查 <span class="chip chip--view">出库时间为空的</span> 视图 → 正常应为空。</li>
+              </ol>
+            </div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">结果</span>
+            <div class="op-body"><span class="auto">顺丰回传后系统自动同步出库时间 + 自动把 <span class="chip chip--state">准备出库</span> 改 <span class="chip chip--state">已出库</span></span>，不用手动改。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">异常</span>
+            <div class="op-body">顺丰回传后仍有"出库时间为空"——数据缺失或快递单号未匹配，回第 3 步重关联。</div>
+          </div>
+        </div>
+
+        <h3>6.4 家长自助查询</h3>
+        <div class="link-card">
+          <div class="link-card-text">
+            家长输入手机号即可查 <strong>订单 · 状态 · 快递 · 预计到货时间</strong>。
+          </div>
+          <a href="https://7ca52dc171d38539.share.mingdao.net/public/query/667cd20b2a256e9d03dbc194" target="_blank" rel="noopener">打开查询页 →</a>
+        </div>
+      </section>
+
+      <section id="afters">
+<h2>七、售后总览</h2>
+        <p>售后流程不是主线的"尾巴"，而是 <strong>与主线并行的分支</strong>：订单在任意阶段都可能进入售后，处理完后再回流到主线对应的状态。</p>
+
+        <h3>7.1 三种售后分支</h3>
+        <div class="tbl">
+          <table>
+            <thead><tr><th>分支</th><th>触发时机</th><th>进入章节</th></tr></thead>
+            <tbody>
+              <tr><td><strong>发货前退换货</strong></td><td>订单在 <span class="chip chip--state">调货前</span>（锁库存 / 拆换标）或 <span class="chip chip--state">调货后</span>（调货中 / 已采购）阶段，尚未出库</td><td><a href="#pre-ship">八</a></td></tr>
+              <tr><td><strong>线上发货后退换货</strong></td><td>订单已 <span class="chip chip--state">已出库</span>，家长收到货后要求退换</td><td><a href="#post-ship">九</a></td></tr>
+              <tr><td><strong>线下换货（收发一体化）</strong></td><td>在学校现场直接收一件 / 发一件，无需快递</td><td><a href="#offline">十</a></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>7.2 选分支决策图</h3>
+        <div class="flow-canvas">
+          <div class="flow">
+            <span class="step step--terminal">售后申请</span>
+            <span class="line"></span>
+            <span class="step step--decision">订单当前出库状态?</span>
+            <div class="paths">
+              <div class="path">
+                <span class="path-tag">在校现场</span>
+                <span class="line"></span>
+                <a href="#offline" class="step step--link">线下换货</a>
+              </div>
+              <div class="path">
+                <span class="path-tag">已出库</span>
+                <span class="line"></span>
+                <a href="#post-ship" class="step step--link">发货后退换货</a>
+              </div>
+              <div class="path">
+                <span class="path-tag path-tag--wide">未出库</span>
+                <span class="line"></span>
+                <a href="#pre-ship" class="step step--link">发货前退换货</a>
+                <span class="line line--short"></span>
+                <div class="branches">
+                  <div class="branch">
+                    <span class="branch-label">调货前</span>
+                    <span class="line line--noarrow line--short"></span>
+                    <span class="step step--muted">§ 8.1</span>
+                  </div>
+                  <div class="branch">
+                    <span class="branch-label">调货后</span>
+                    <span class="line line--noarrow line--short"></span>
+                    <span class="step step--muted">§ 8.1</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h3>7.3 售后通用警示</h3>
+        <div class="alert alert--severe">
+          <div class="alert-head">
+            <span class="alert-tag">不可逆 · 警示</span>
+            <span class="alert-title">不要直接删退换货</span>
+          </div>
+          <div class="alert-body">
+            <p>特别是已审核通过的；改用 <span class="chip chip--btn">审核不通过</span> 或 <span class="chip chip--btn">审核通过→待审核</span>（见 9.2 按钮说明）。</p>
+          </div>
+        </div>
+        <div class="alert alert--severe">
+          <div class="alert-head">
+            <span class="alert-tag">不可逆 · 警示</span>
+            <span class="alert-title">不要手动建虚拟移仓单</span>
+          </div>
+          <div class="alert-body">
+            <p>9.3 退换货回仓判定 的虚拟移仓单由 <span class="auto">系统自动生成</span>，手动建会破坏账实关系。</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="pre-ship">
+<h2>八、发货前退换货</h2>
+        <p>订单尚未出库时申请退换。系统会根据 <span class="chip chip--field">出库状态</span> 自动判断审核流程，无需财务手动调整库存。</p>
+
+        <h3>8.1 调货前 / 调货后退换货</h3>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">订单状态为 <span class="chip chip--state">锁库存</span> / <span class="chip chip--state">拆换标</span> / <span class="chip chip--state">待判定</span>——库存未发生采购动作。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">内部退换货申请表</span></span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li>填申请 → 选商品退换 / 仅退款（填金额）。</li>
+                <li><span class="chip chip--btn">发起审批</span>。</li>
+                <li><span class="auto">生成 <span class="chip chip--sheet">退换货明细审核</span></span>。</li>
+                <li><span class="chip chip--btn">业务审核通过</span>。</li>
+              </ol>
+            </div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">结果</span>
+            <div class="op-body"><span class="auto">自动释放库存 / 取消采购单</span>。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">异常</span>
+            <div class="op-body">学校仓拆换标场景 → 触发 9.3 回仓判定 的虚拟移仓单流程。</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="post-ship">
+<h2>九、线上发货后退换货</h2>
+        <p>订单已 <span class="chip chip--state">已出库</span>，家长收到货后通过客服或自助表单申请退换；货物寄回 → 拆快递入库 → 审核 → 库存回仓。</p>
+
+        <h3>9.1 内部发起</h3>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">工作人员（客服 / 业务 / 管家）通过内部表单为家长发起退换。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">内部退换货申请表</span></span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li><span class="chip chip--btn">记录</span> 新建 <span class="arrow">→</span> 用收件电话搜订单 <span class="arrow">→</span> 选择订单。</li>
+                <li>在 <span class="chip chip--field">选择商品出库单明细</span> 中勾选要退换的商品。</li>
+                <li>填申请数量、退换类型（退款 / 换货）、换货新尺码信息。</li>
+                <li><span class="chip chip--btn">发起审批</span>。</li>
+                <li><span class="auto">生成 <span class="chip chip--sheet">退换货明细审核</span></span>。</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <h3>9.2 家长发起</h3>
+        <p>家长通过自助表单提交，流程：家长提交 → 管家初审 → 业务终审 → 点对应按钮。审核位置：<span class="chip chip--sheet">退换货明细审核</span>。</p>
+
+        <div class="link-card">
+          <div class="link-card-text"><strong>在之间</strong>　家长自助退换货入口</div>
+          <a href="https://7ca52dc171d38539.share.mingdao.net/public/form/c1d688f561eb4dc1b9d4baf494ca247c" target="_blank" rel="noopener">打开表单 →</a>
+        </div>
+
+        <h4>《退换货明细审核》两个特殊按钮</h4>
+        <div class="tbl">
+          <table>
+            <thead><tr><th>按钮</th><th>用途</th><th>行为</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><span class="chip chip--btn">审核不通过</span></td>
+                <td>类似删除退换货申请工单</td>
+                <td>操作有误需重提一条新申请；若退款已完成，<strong>不会产生任何影响</strong></td>
+              </tr>
+              <tr>
+                <td><span class="chip chip--btn">审核通过→待审核</span></td>
+                <td>退回已通过的申请</td>
+                <td>① 还原原单出库状态；② 删除负收入；③ 没退款 → <span class="auto">自动删退款单</span>；④ 财务已退款 → 点按钮不会变化，<strong>先和财务确认</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>9.3 退换货回仓判定</h3>
+        <p>快速库存判定锁库存后，退换货时系统默认释放到大仓。但"学校仓扣货"和"学校仓拆换标"场景下，统一释放到大仓会让学校仓账实不符。本步加人工判断，必要时由系统生成虚拟移仓单把库存释放回正确仓库。</p>
+
+        <h4>四种扣货形式 vs 是否触发判断</h4>
+        <div class="tbl">
+          <table>
+            <thead><tr><th>扣货类型</th><th>出库状态</th><th>指定发货仓库</th><th>其他特征</th><th>触发判断?</th></tr></thead>
+            <tbody>
+              <tr><td>大仓扣货</td><td><span class="chip chip--state">锁库存</span></td><td>空</td><td>—</td><td><span class="chip chip--state" style="border-color: var(--ink-30); color: var(--ink-48);">否</span></td></tr>
+              <tr><td><strong>学校仓扣货</strong></td><td><span class="chip chip--state">锁库存</span></td><td>学校仓名</td><td>有移仓明细</td><td><span class="chip chip--state">是</span></td></tr>
+              <tr><td>大仓拆换标</td><td><span class="chip chip--state">锁库存</span></td><td>空</td><td>拆换标备注 + 入库明细</td><td><span class="chip chip--state" style="border-color: var(--ink-30); color: var(--ink-48);">否</span></td></tr>
+              <tr><td><strong>学校仓拆换标</strong></td><td><span class="chip chip--state">锁库存</span></td><td>学校仓名</td><td>拆换标备注 + 移仓明细</td><td><span class="chip chip--state">是</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>审核流程</h4>
+        <div class="flow-canvas">
+          <div class="flow">
+            <span class="step step--terminal">退换货审核</span>
+            <span class="line"></span>
+            <span class="step step--stack">
+              <span>系统判断扣货类型</span>
+              <span class="step-sub">✦ 自动</span>
+            </span>
+            <div class="branches">
+              <div class="branch">
+                <span class="branch-label">不触发</span>
+                <span class="line"></span>
+                <span class="step step--muted">走 §9.1 / §9.2 / §十 正常流程</span>
+              </div>
+              <div class="branch">
+                <span class="branch-label">触发</span>
+                <span class="line"></span>
+                <span class="step">弹窗 + 参考信息</span>
+                <span class="line"></span>
+                <span class="step step--decision">审核人选择</span>
+                <div class="branches">
+                  <div class="branch">
+                    <span class="branch-label">未发</span>
+                    <span class="line"></span>
+                    <span class="step">释放到大仓</span>
+                    <span class="line"></span>
+                    <span class="step step--output">生成虚拟移仓单</span>
+                    <span class="line"></span>
+                    <span class="step step--stack">
+                      <span>库存位置</span>
+                      <span class="step-sub">学校仓</span>
+                    </span>
+                  </div>
+                  <div class="branch">
+                    <span class="branch-label">已发</span>
+                    <span class="line"></span>
+                    <span class="step">释放到大仓</span>
+                    <span class="line"></span>
+                    <span class="step step--stack">
+                      <span>库存位置</span>
+                      <span class="step-sub">大仓</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="merge merge--xtall"></span>
+            <span class="step step--terminal">记录判断信息</span>
+          </div>
+          <p class="flow-caption">✦ 系统自动记录判断人 / 时间 / 依据</p>
+        </div>
+
+        <h4>虚拟移仓单字段</h4>
+        <div class="tbl">
+          <table>
+            <thead><tr><th>字段</th><th>取值</th></tr></thead>
+            <tbody>
+              <tr><td><span class="chip chip--field">移出仓库</span></td><td>大仓</td></tr>
+              <tr><td><span class="chip chip--field">移入仓库</span></td><td>原单「指定发货仓库」</td></tr>
+              <tr><td>SKU / 数量</td><td>退换货明细</td></tr>
+              <tr><td><span class="chip chip--field">备注</span></td><td><code style="font-family: var(--font-mono); font-size: 13px;">退换货自动回库_单号_判断人_时间</code></td></tr>
+              <tr><td>状态</td><td>直接完成</td></tr>
+              <tr><td>标识</td><td>虚拟移仓</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="notice"><strong>虚拟移仓单只调整账面，不产生实际物流</strong>。</div>
+
+        <h3>9.4 拆快递入库</h3>
+        <p>货物寄回后由仓库拆包、录入系统。</p>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">仓库收到家长寄回的退换货快递。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body">多入口：<span class="chip chip--sheet">总表快递到货确认</span>、<span class="chip chip--sheet">仓库退换货审批和无字条处理</span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li>填写 <span class="chip chip--sheet">拆快递记录单</span>。</li>
+                <li><span class="chip chip--btn">核对退换货明细</span> <span class="arrow">→</span> <span class="auto">自动匹配</span>。</li>
+                <li>进入「财务应用」<span class="arrow">→</span> <span class="chip chip--sheet">入库单</span> <span class="arrow">→</span> <span class="chip chip--btn">记录</span>：
+                  <ul>
+                    <li>左侧"拆快递"关联今天拆快递的快递单号。</li>
+                    <li><span class="chip chip--btn">拆快递入库明细生成</span>。</li>
+                    <li>核对入库数量汇总和拆快递应入库总数。</li>
+                    <li>确认后入库状态改 <span class="chip chip--state">已入库</span>。</li>
+                  </ul>
+                </li>
+              </ol>
+            </div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">结果</span>
+            <div class="op-body"><span class="auto">自动按检索号 + 尺码匹配退换货明细</span>。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">异常</span>
+            <div class="op-body">无字条商品 → <span class="chip chip--sheet">仓库退换货审批和无字条处理</span> 中 <span class="chip chip--view">还没&lt;关联退换货明细&gt;</span> → <span class="chip chip--btn">更新关联</span> 自动关联。</div>
+          </div>
+        </div>
+
+        <h3>9.5 拆快递一键审批</h3>
+        <p>系统自动按检索号 + 尺码核对退换货明细，减少仓库人员手动比对工作。原来"查询 → 核对 → 审批"三步，现在 <span class="auto">系统自动匹配</span> → 一键通过。</p>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">拆快递入库完成，需要审批退换货明细。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span>订单管理 <span class="arrow">→</span> 仓库相关 <span class="arrow">→</span> <span class="chip chip--sheet">快递到货确认</span> <span class="arrow">→</span> <span class="chip chip--view">退换货审批</span></span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body"><span class="chip chip--btn">退换审核通过</span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">异常</span>
+            <div class="op-body">
+              <div class="tbl">
+                <table>
+                  <thead><tr><th>异常</th><th>触发条件</th><th>系统处理</th><th>人工</th></tr></thead>
+                  <tbody>
+                    <tr><td>数量不符</td><td>实收 ≠ 申请数</td><td>红色提示 + 禁止审批</td><td>联系客户确认</td></tr>
+                    <tr><td>无匹配记录</td><td>找不到对应退换货单</td><td>蓝色提示</td><td>人工查询</td></tr>
+                    <tr><td>重复入库</td><td>快递单号已处理</td><td>禁止操作</td><td>核实是否误操作</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="offline">
+<h2>十、线下换货（收发一体化）</h2>
+        <p>在学校现场直接换货：仓库当场收回一件、发出一件，无需走快递流程；用一张单据同时完成入库与出库。</p>
+
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">学校现场换货。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">线下调换收发一体化</span></span>（模板：<code style="font-family: var(--font-mono); font-size: 13px;">线下调换换入+换出流程模板.xlsx</code>）</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li>按模板填 <span class="chip chip--sheet">线下调换收发一体化</span>。</li>
+                <li><span class="chip chip--btn">收支台账计算</span>。</li>
+                <li><span class="chip chip--btn">生成入库单</span> <span class="arrow">→</span> <span class="auto">生成退换入库单</span>。</li>
+                <li><span class="chip chip--btn">发起出库单审核</span> <span class="arrow">→</span> <span class="auto">生成出库单 + 渠道批次</span>。</li>
+              </ol>
+            </div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">结果</span>
+            <div class="op-body">同一笔流程同时产出入库单 + 出库单，账实一致。</div>
+          </div>
+        </div>
+
+        <div class="alert alert--severe">
+          <div class="alert-head">
+            <span class="alert-tag">不可逆 · 警示</span>
+            <span class="alert-title">不要重复点【生成入库单】</span>
+          </div>
+          <div class="alert-body">
+            <p>会生成多张入库单导致库存错乱。</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="data">
+<h2>十一、基础数据维护</h2>
+        <p>低频维护事项；当主线流程因数据缺失报错时，回这里补数据。</p>
+
+        <h3 id="data-school">A.1 新学校建档</h3>
+        <p>任何新合作学校在系统中下单 / 出库前，必须先把学校名字添加到两个字段：<span class="chip chip--field">学校名称</span> 和 <span class="chip chip--field">学校名称-发货用</span>。</p>
+
+        <h4>A.1.1 添加【学校名称】</h4>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">新合作学校首次进入系统。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span>数据处理 <span class="arrow">→</span> <span class="chip chip--sheet">线下批次/JSJ表单目录</span> <span class="arrow">→</span> 编辑表单</span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li>进入编辑页面，找到 <span class="chip chip--field">学校名称</span> 字段，选中后在右侧字段编辑。</li>
+                <li>添加选项 <span class="arrow">→</span> 编辑学校名称（<strong>准确全称</strong>）<span class="arrow">→</span> 保存。</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <h4>A.1.2 添加【学校名称-发货用】</h4>
+        <p>新学校已在 A.1.1 添加后，按校标聚合到发货归类单位。</p>
+        <div class="notice"><strong>学校名称-发货用是按校标聚合，不是按行政归属</strong>。例：沈阳市垚为学校小学部 / 初中部 / 高中部 → 三所学校，校标相同，发货用都选 <em>沈阳市垚为学校</em>。又例：沈阳市实验学校中海城小学 23–24 级用新校标、20–22 级用老校标 → 对应两个不同的"发货用"。</div>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">操作步骤同 A.1.1，添加选项 <span class="arrow">→</span> 保存。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">异常</span>
+            <div class="op-body"><span class="chip chip--field">学校名称-发货用</span> 为空 → 在 <span class="chip chip--sheet">线下批次/JSJ表单目录</span> 更新该字段。</div>
+          </div>
+        </div>
+
+        <h3 id="data-sku">A.2 新商品 / 新款式建档</h3>
+        <p>新款 / 新校标必须先在 <span class="chip chip--sheet">存货档案（检索号）</span> 和 <span class="chip chip--sheet">商品 SKU 及库存状态</span> 建档，才能被订单引用。</p>
+
+        <h4>A.2.1 添加检索号及款式基础信息</h4>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">新款式 / 新校标首次进入系统。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span>财务应用 <span class="arrow">→</span> 仓库调货与入库 <span class="arrow">→</span> <span class="chip chip--sheet">存货档案（检索号）</span> <span class="arrow">→</span> <span class="chip chip--btn">加记录</span></span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li>参考总部的"存货档案表"和"二维库存表"。</li>
+                <li>仅维护 <strong>基础款号</strong> 和 <strong>校标</strong>（这里不细到尺码）。</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <h4>A.2.2 添加商品 SKU 与车标款号 SKU</h4>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">A.2.1 完成后，需要细化到尺码段。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span>财务应用 <span class="arrow">→</span> 仓库调货与入库 <span class="arrow">→</span> <span class="chip chip--sheet">商品 SKU 及库存状态</span></span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li>参考总部的"存货档案表"和"二维库存表"。</li>
+                <li>添加 <strong>全尺码段</strong> 基础款和车标款。</li>
+                <li>校标也需要创建 SKU，<strong>校标的检索号与 SKU 保持一致</strong>。</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <h4>A.2.3 方法二 · 批量补齐尺码段</h4>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">某款式的 <span class="chip chip--sheet">商品 SKU 及库存状态</span> 中尺码不全，需要批量补齐。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span>财务应用 <span class="arrow">→</span> 仓库调货与入库 <span class="arrow">→</span> <span class="chip chip--sheet">sku 目录维护创建（批处理）</span></span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li>填基础信息后，选所有该学校的尺码段，<span class="chip chip--btn">提交</span>。</li>
+                <li>选中刚提交的这条数据 <span class="arrow">→</span> 点进去 <span class="arrow">→</span> 左上角 <span class="chip chip--btn">创建</span>。</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <h4>A.2.4 添加学校商品目录</h4>
+        <p>新款式 SKU 建好后，要让对应学校能下单这款。位置：<span class="chip chip--sheet">学校商品目录名册</span>。</p>
+        <div class="notice">推荐从 <span class="chip chip--sheet">商品属性（辅助批次管理单价）</span> 导出已推送过的数据 → 导入到目录（<strong>导入前先备份</strong>）。每天凌晨 2 点系统会自动备份。</div>
+
+        <h3 id="data-class">A.3 订单分类维护</h3>
+        <p>销售订单要正确归属到学校 / 部门 / 销售类别，才能在仪表盘 / 财务对账 / 库存判定中被正确聚合。</p>
+
+        <h4>A.3.1 学校名称、所属部门、销售分类维护</h4>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">新订单进入系统、或既有订单分类有误。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">销售订单</span></span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li>按 A.1.2 的逻辑维护 <span class="chip chip--field">学校名称-发货用</span>。</li>
+                <li>维护 <span class="chip chip--field">所属部门</span>、<span class="chip chip--field">销售分类</span>。</li>
+                <li>填完 <span class="chip chip--field">销售分类</span> 后，<strong>记得点上方的</strong> <span class="chip chip--btn">更新销售分类</span>、<span class="chip chip--btn">备份学校目录名单</span>。</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+        <div class="notice"><strong>销售分类只在"销售订单"上维护</strong>　调换、样衣等其他非销售用途的订单 <strong>不需要</strong> 维护销售分类。</div>
+
+        <h4>A.3.2 金数据漏推处理</h4>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">触发</span>
+            <div class="op-body">怀疑某金数据订单漏推到明道云。</div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">金数据漏推记录表</span></span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li>看 <span class="chip chip--field">是否已经补推</span> 列：显示 <span class="chip chip--state">否</span> 即为疑似漏推。</li>
+                <li>核实是否真的需要补推：
+                  <ul>
+                    <li>大部分付款状态是 <code style="font-family: var(--font-mono); font-size: 13px;">WAIT_BUYER_PAY</code> → <strong>无需补推</strong>（家长还没付款）。</li>
+                    <li>未付款订单：备注"未付款"。</li>
+                  </ul>
+                </li>
+                <li>需要补推的订单 → 点进数据 <span class="arrow">→</span> 左上角 <span class="chip chip--btn">漏推复核</span> <span class="arrow">→</span> <span class="chip chip--btn">一键补推</span>。</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+        <div class="notice"><strong>兜底补推</strong>　在金数据后台数据页面给目标数据打颜色标记 <span class="arrow">→</span> <span class="auto">自动触发推送</span> <span class="arrow">→</span> 在 <span class="chip chip--sheet">销售订单</span> 验证。</div>
+
+        <h3 id="data-misc">A.4 出库单序号（业务辅助标记）</h3>
+        <p>业务在订单创建后给销售订单手动打的标记，目的是后续库存判定 / 处理订单时方便归类。<strong>目前对出库流程无实际意义</strong>，可按需使用。</p>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">出库单进度表</span> / <span class="chip chip--sheet">出库单明细</span></span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li><span class="chip chip--sheet">出库单进度表</span> <span class="arrow">→</span> <span class="chip chip--btn">加记录</span>，<span class="auto">系统自动生成序号</span>——只填名头基础信息即可。</li>
+                <li>把销售订单 / 出库明细关联到该序号（三种方式见下表）。</li>
+              </ol>
+              <div class="tbl">
+                <table>
+                  <thead><tr><th>方式</th><th>路径</th><th>适用场景</th></tr></thead>
+                  <tbody>
+                    <tr><td>手动关联</td><td><span class="chip chip--sheet">出库单进度表</span> 明细页面 <span class="arrow">→</span> 勾选记录 <span class="arrow">→</span> 关联至指定序号</td><td>少量、即时</td></tr>
+                    <tr><td>批量编辑</td><td><span class="chip chip--sheet">出库单明细</span> <span class="arrow">→</span> 批量编辑 <span class="arrow">→</span> 选 <span class="chip chip--field">【最终】出库单序号</span> <span class="arrow">→</span> 录入序号</td><td>大批量统一</td></tr>
+                    <tr><td>系统自动</td><td>「线下批次」目录新增 <span class="chip chip--field">默认出单序号</span> 字段 <span class="arrow">→</span> 数据录入后自动打标签</td><td>固定批次号</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="notice"><strong>批次号不固定</strong>（如今天 101 明天 102）→ 保持 <span class="chip chip--field">默认出单序号</span> 为空，避免误关联。<br><strong>5 分钟延迟</strong>　点击"一键批量关联"前 5 分钟内创建的销售单 / 出库单明细不会被关联。</div>
+
+        <h3>A.5 身高尺码对照表</h3>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">尺码对照表</span></span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li><span class="chip chip--btn">导出</span> 原表。</li>
+                <li>Excel 改：身高 0–999、体重 0–999、尺码映射、商品分类与 SKU 一致。</li>
+                <li><span class="chip chip--btn">导入</span> <span class="arrow">→</span> 选"仅更新"（不新增、不删除）。</li>
+                <li><span class="chip chip--btn">关联目录</span> <span class="arrow">→</span> <span class="auto">自动匹配分类</span>。</li>
+                <li>随机抽几个身高体重 → 测推荐。</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+        <div class="alert alert--severe">
+          <div class="alert-head">
+            <span class="alert-tag">不可逆 · 警示</span>
+            <span class="alert-title">导入前先备份</span>
+          </div>
+          <div class="alert-body">
+            <p>对照表覆盖整个学校的尺码推荐逻辑，错误数据无法快速回滚。维护好可大幅减少尺码退换货。</p>
+          </div>
+        </div>
+
+        <h3>A.6 商品 SKU 维护（汇总）</h3>
+        <p>所有流程的基础。订单 / 退换货 / 出入库 / 财务都关联此目录。位置：<span class="chip chip--sheet">商品 SKU 及库存状态</span>。</p>
+
+        <div class="dtree">
+          <div class="dtree-q">情况一 · 新建商品</div>
+          <div class="dtree-branches">
+            <div class="dtree-branch">
+              <span class="dtree-tag dtree-tag--yes">有检索号</span>
+              <div class="dtree-body">直接选 <span class="arrow">→</span> 在 <span class="chip chip--sheet">商品 SKU 及库存状态</span> 填齐必填项。</div>
+            </div>
+            <div class="dtree-branch">
+              <span class="dtree-tag dtree-tag--no">无检索号</span>
+              <div class="dtree-body">先去 <span class="chip chip--sheet">存货档案（检索号）</span> 加索引号 <span class="arrow">→</span> 回 SKU 表填齐必填项。<br><span style="font-size: 13px; color: var(--ink-48);">校标索引号和 SKU 保持一致。</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dtree">
+          <div class="dtree-q">情况二 · 批量补充新尺码 / 款式（有索引号、非校标、非配饰）</div>
+          <div class="dtree-branches">
+            <div class="dtree-branch">
+              <span class="dtree-tag dtree-tag--yes">有索引号</span>
+              <div class="dtree-body">直接选。</div>
+            </div>
+            <div class="dtree-branch">
+              <span class="dtree-tag dtree-tag--no">无索引号</span>
+              <div class="dtree-body">去 <span class="chip chip--sheet">存货档案</span> 加 <span class="arrow">→</span> 在 <span class="chip chip--sheet">SKU 目录批量维护（批处理）</span> 填必填项 <span class="arrow">→</span> 创建。</div>
+            </div>
+          </div>
+        </div>
+
+        <p>详细步骤见 A.2 新商品 / 新款式建档。</p>
+
+        <h3>A.7 金数据表单制作</h3>
+        <div class="link-card">
+          <div class="link-card-text"><strong>模板</strong>　复制后修改字段使用</div>
+          <a href="https://jinshuju.net/forms/YLQOYC/edit" target="_blank" rel="noopener">打开模板 →</a>
+        </div>
+
+        <h4>步骤 1 · 字段维护</h4>
+        <p>复制模板 <span class="arrow">→</span> 改标题 <span class="arrow">→</span> 调字段：</p>
+        <ul class="points">
+          <li>带 <span class="chip chip--field">【 】</span> 的字段：不能删，可改名 / 调顺序。</li>
+          <li>不需要家长填的：隐藏。</li>
+          <li>商品字段：款号格式 <code style="font-family: var(--font-mono); font-size: 13px;">商品款号_校标记编码</code>；不需要快递费 → 删相关字段。</li>
+        </ul>
+
+        <h4>步骤 2 · 配置自动化推送</h4>
+        <div class="tbl">
+          <table>
+            <thead><tr><th>版本</th><th>入口</th></tr></thead>
+            <tbody>
+              <tr><td>旧版</td><td>表单设置 <span class="arrow">→</span> 数据推送 <span class="arrow">→</span> 将数据以 JSON 格式发送给第三方</td></tr>
+              <tr><td>新版</td><td>表单设置 <span class="arrow">→</span> 提醒推送 <span class="arrow">→</span> 新建提醒推送（有数据新增 → 配置 Webhook）</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Webhook 地址同 1.1 线上 · 金数据 → 明道云。</p>
+        <div class="notice"><strong>补推送</strong>（漏推 / 表单只收集再统一推送）：自动化触发器选 <span class="chip chip--view">数据更新</span> <span class="arrow">→</span> 在数据页面给目标数据打颜色标记 <span class="arrow">→</span> <span class="auto">自动推送</span> <span class="arrow">→</span> 在明道云验证。</div>
+
+        <h3>A.8 套装配置</h3>
+
+        <h4>A.8.1 套装尺码</h4>
+        <p>位置：<span class="chip chip--sheet">套装身高尺码</span> / <span class="chip chip--sheet">套餐尺码辅助表</span>。家长选一个尺码，系统自动拆成各单品对应尺码。</p>
+        <div class="sub-block">
+          <p style="margin: 0; font-size: 15.5px; color: var(--ink-80);"><strong>示例</strong>　130T 特体套装 → 毛衫 150 + T 恤 150 + 裤子 140 + 外套 150。</p>
+        </div>
+
+        <h4>A.8.2 套装制作</h4>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">位置</span>
+            <div class="op-body"><span class="loc"><span class="loc-pin"></span><span class="chip chip--sheet">套装</span> / <span class="chip chip--sheet">套装内容</span></span></div>
+          </div>
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li><span class="chip chip--sheet">套装</span> 添加记录：名称 / 款号（如 <code style="font-family: var(--font-mono); font-size: 13px;">YWY-TZ-2026001</code>）/ 学校 / 类型（标准 / 特体）。</li>
+                <li><span class="chip chip--sheet">套装内容</span> 添加单品（款号 + 商品分类，≥ 2 件）。</li>
+                <li>含特体 → 关联 A.8.1 的规则。</li>
+                <li>保存 → 建测试订单验证拆分。</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <h4>A.8.3 套装无法拆分排查</h4>
+        <ol class="points" style="list-style: decimal; padding-left: 24px;">
+          <li>套装尺码维护配了 + 套装制作完成?</li>
+          <li>套装中的商品分类 = SKU 中的分类?</li>
+          <li>套装中每个单品在 SKU 表存在?</li>
+          <li>看系统错误提示，补缺失数据。</li>
+          <li>重新推送订单 → 验证拆分。</li>
+        </ol>
+
+        <h3>A.9 入库 / 调库 / 改单价 / 新建仓库</h3>
+        <div class="tbl">
+          <table>
+            <thead><tr><th>场景</th><th>位置</th><th>要点</th></tr></thead>
+            <tbody>
+              <tr><td>入库单</td><td>财务应用 <span class="arrow">→</span> <span class="chip chip--sheet">入库单</span></td><td>见 4.2 采购单入库 方案一</td></tr>
+              <tr><td>调库 / 移仓</td><td>财务应用 <span class="arrow">→</span> <span class="chip chip--sheet">移仓单/调库单</span></td><td>调出仓库必须有库存；不能删只能作废；<strong>虚拟移仓单由 9.3 自动生成，不要手动建</strong></td></tr>
+              <tr><td>批量改采购单价</td><td><span class="chip chip--sheet">财务批量处理采购单单价等</span></td><td>见下</td></tr>
+              <tr><td>新建仓库</td><td><span class="chip chip--sheet">入库单</span> 仓库字段 + <span class="chip chip--sheet">商品 SKU 及库存状态</span> 仓库字段</td><td>见下</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>批量改采购单价</h4>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li>打开 <span class="chip chip--sheet">财务批量处理采购单单价等</span> <span class="arrow">→</span> 关联采购单。</li>
+                <li>填入库成本 + 代理销售价 <span class="arrow">→</span> <span class="chip chip--btn">补充单价</span>。</li>
+                <li>看 <span class="chip chip--field">执行情况</span> 确认。</li>
+                <li>改错 → 把 <span class="chip chip--field">执行情况</span> 清空 <span class="arrow">→</span> 改单价 <span class="arrow">→</span> 再点 <span class="chip chip--btn">补充单价</span>。</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <h4>新建仓库</h4>
+        <div class="op-unit">
+          <div class="op-row">
+            <span class="op-label">步骤</span>
+            <div class="op-body">
+              <ol>
+                <li><span class="chip chip--sheet">入库单</span> <span class="arrow">→</span> 编辑 <span class="chip chip--field">仓库</span> 字段 <span class="arrow">→</span> 添加新仓库选项。</li>
+                <li><span class="chip chip--sheet">商品 SKU 及库存状态</span> <span class="arrow">→</span> 复制"力旺高中"的筛选配置 <span class="arrow">→</span> 把汇总范围改成新仓库名。</li>
+                <li>测试：建入库单 + 调库单 → 看库存是否正确更新。</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  /* ─── Sidebar drawer (mobile) ─── */
+  (function () {
+    var toggle = document.getElementById('navToggle');
+    var sidebar = document.getElementById('sidebar');
+    var overlay = document.getElementById('navOverlay');
+    if (!toggle || !sidebar || !overlay) return;
+
+    function setOpen(open) {
+      sidebar.classList.toggle('open', open);
+      overlay.classList.toggle('open', open);
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      document.body.style.overflow = open ? 'hidden' : '';
+    }
+
+    toggle.addEventListener('click', function () { setOpen(!sidebar.classList.contains('open')); });
+    overlay.addEventListener('click', function () { setOpen(false); });
+    sidebar.addEventListener('click', function (e) {
+      var t = e.target;
+      if (t && t.tagName === 'A' && window.matchMedia('(max-width: 833px)').matches) setOpen(false);
+    });
+    window.addEventListener('resize', function () {
+      if (window.innerWidth > 833) setOpen(false);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && sidebar.classList.contains('open')) setOpen(false);
+    });
+  })();
+
+  /* ─── Scroll reveal ─── */
+  (function () {
+    var targets = document.querySelectorAll('.doc-header, main section');
+    if (!targets.length) return;
+
+    if (!('IntersectionObserver' in window)) {
+      targets.forEach(function (el) { el.classList.add('is-in'); });
+      return;
+    }
+
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-in');
+          obs.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.08, rootMargin: '0px 0px -6% 0px' });
+
+    targets.forEach(function (el) { obs.observe(el); });
+  })();
+
+  /* ─── Flow canvas 右滑提示 ─── */
+  (function () {
+    var canvases = document.querySelectorAll('.flow-canvas');
+    if (!canvases.length) return;
+
+    function update(canvas) {
+      var scroller = canvas.querySelector('.flow');
+      if (!scroller) return;
+      var hasOverflow = scroller.scrollWidth > scroller.clientWidth + 2;
+      var atEnd = scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 4;
+      canvas.classList.toggle('has-overflow', hasOverflow);
+      canvas.classList.toggle('at-end', atEnd);
+    }
+    function updateAll() { canvases.forEach(update); }
+
+    canvases.forEach(function (canvas) {
+      if (!canvas.querySelector('.scroll-hint-pill')) {
+        var pill = document.createElement('div');
+        pill.className = 'scroll-hint-pill';
+        pill.setAttribute('aria-hidden', 'true');
+        pill.innerHTML = '<span class="hint-text">右滑查看</span>';
+        canvas.appendChild(pill);
+      }
+      var scroller = canvas.querySelector('.flow');
+      if (scroller) {
+        scroller.addEventListener('scroll', function () { update(canvas); }, { passive: true });
+      }
+    });
+
+    window.addEventListener('resize', updateAll);
+    window.addEventListener('load', updateAll);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(updateAll);
+    requestAnimationFrame(updateAll);
+    setTimeout(updateAll, 300);
+  })();
+
+  /* ─── Screenshot lightbox ─── */
+  (function () {
+    var images = document.querySelectorAll('.screenshot img');
+    if (!images.length) return;
+
+    var lightbox = document.createElement('div');
+    lightbox.className = 'image-lightbox';
+    lightbox.setAttribute('role', 'dialog');
+    lightbox.setAttribute('aria-modal', 'true');
+    lightbox.setAttribute('aria-label', '查看截图');
+    lightbox.innerHTML = '<button class="image-lightbox-close" type="button" aria-label="关闭">×</button><img alt="">';
+    document.body.appendChild(lightbox);
+
+    var lightboxImg = lightbox.querySelector('img');
+    var closeButton = lightbox.querySelector('.image-lightbox-close');
+    var previousOverflow = '';
+
+    function openLightbox(img) {
+      previousOverflow = document.body.style.overflow;
+      lightboxImg.src = img.currentSrc || img.src;
+      lightboxImg.alt = img.alt || '';
+      lightbox.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      closeButton.focus();
+    }
+
+    function closeLightbox() {
+      lightbox.classList.remove('open');
+      lightboxImg.removeAttribute('src');
+      document.body.style.overflow = previousOverflow;
+    }
+
+    images.forEach(function (img) {
+      img.setAttribute('tabindex', '0');
+      img.setAttribute('role', 'button');
+      img.setAttribute('aria-label', (img.alt || '截图') + '，点击放大');
+      img.addEventListener('click', function () { openLightbox(img); });
+      img.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openLightbox(img);
+        }
+      });
+    });
+
+    closeButton.addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', function (e) {
+      if (e.target === lightbox) closeLightbox();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && lightbox.classList.contains('open')) closeLightbox();
+    });
+  })();
+</script>
+
+</body>
+</html>

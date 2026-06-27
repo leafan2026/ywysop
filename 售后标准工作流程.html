@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>售后标准工作流程</title>
+
+<script>
+  /* 立即加，确保 CSS 隐藏样式同步生效，避免首屏闪烁 */
+  document.documentElement.classList.add('has-reveal');
+</script>
+
+<style>
+  :root {
+    --primary: #0066cc;
+
+    --ink: #1d1d1f;
+    --ink-80: #333333;
+    --ink-48: #6e6e73;
+    --ink-30: #86868b;
+
+    --canvas: #ffffff;
+    --parchment: #f5f5f7;
+    --surface-pearl: #fafafc;
+    --surface-black: #000000;
+
+    --divider: #f0f0f0;
+    --hairline: #e0e0e0;
+    --line: #c7c7cc;
+
+    --r-sm: 8px;
+    --r-md: 11px;
+    --r-lg: 18px;
+    --r-pill: 9999px;
+
+    --s-xs: 8px;
+    --s-sm: 12px;
+    --s-md: 17px;
+    --s-lg: 24px;
+    --s-xl: 32px;
+    --s-xxl: 48px;
+    --s-section: 80px;
+
+    --font-display: "SF Pro Display", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --font-text: "SF Pro Text", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+
+    --sidebar-w: 280px;
+    --content-max: 820px;
+    --nav-h: 44px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-font-smoothing: antialiased; scroll-behavior: smooth; }
+  body {
+    font-family: var(--font-text);
+    font-size: 17px;
+    line-height: 1.47;
+    letter-spacing: -0.374px;
+    color: var(--ink);
+    background: var(--canvas);
+    overflow-x: hidden;
+  }
+
+  /* ───────── Global nav ───────── */
+  .global-nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--surface-black);
+    color: #fff;
+    height: var(--nav-h);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 16px 0 12px;
+  }
+  .global-nav-brand {
+    font-family: var(--font-text);
+    font-size: 12px;
+    line-height: 1;
+    letter-spacing: -0.12px;
+    color: #fff;
+  }
+  .nav-toggle {
+    display: none;
+    background: transparent;
+    border: 0;
+    padding: 8px;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 4px;
+    border-radius: var(--r-sm);
+  }
+  .nav-toggle span {
+    display: block;
+    width: 16px;
+    height: 1.5px;
+    background: #fff;
+    border-radius: 2px;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+  .nav-toggle[aria-expanded="true"] span:nth-child(1) {
+    transform: translateY(5.5px) rotate(45deg);
+  }
+  .nav-toggle[aria-expanded="true"] span:nth-child(2) {
+    opacity: 0;
+  }
+  .nav-toggle[aria-expanded="true"] span:nth-child(3) {
+    transform: translateY(-5.5px) rotate(-45deg);
+  }
+
+  /* Overlay for drawer */
+  .nav-overlay {
+    display: none;
+    position: fixed;
+    inset: var(--nav-h) 0 0 0;
+    background: rgba(0, 0, 0, 0.32);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    z-index: 90;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .nav-overlay.open {
+    display: block;
+    opacity: 1;
+  }
+
+  /* ───────── Doc layout ───────── */
+  .doc {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) 1fr;
+    min-height: calc(100vh - var(--nav-h));
+  }
+
+  /* Sidebar */
+  .sidebar {
+    background: var(--parchment);
+    border-right: 1px solid var(--hairline);
+    position: sticky;
+    top: var(--nav-h);
+    height: calc(100vh - var(--nav-h));
+    overflow-y: auto;
+    padding: var(--s-xl) 0 var(--s-xxl) 0;
+  }
+  .sidebar-inner { padding: 0 var(--s-lg); }
+  .doc-brand {
+    font-family: var(--font-display);
+    font-size: 21px;
+    font-weight: 600;
+    line-height: 1.19;
+    letter-spacing: 0.231px;
+    color: var(--ink);
+  }
+  .doc-version {
+    font-family: var(--font-text);
+    font-size: 12px;
+    line-height: 1.3;
+    letter-spacing: -0.12px;
+    color: var(--ink-48);
+    margin-top: 4px;
+    margin-bottom: var(--s-xl);
+  }
+  .toc { display: flex; flex-direction: column; gap: 1px; }
+  .toc-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    margin-top: 22px;
+    padding-top: 22px;
+    border-top: 1px solid var(--divider);
+  }
+  .toc a {
+    display: block;
+    padding: 6px 10px;
+    font-family: var(--font-text);
+    font-size: 14px;
+    line-height: 1.43;
+    letter-spacing: -0.224px;
+    color: var(--ink-80);
+    text-decoration: none;
+    border-radius: var(--r-sm);
+    transition: background 0.15s, color 0.15s;
+  }
+  .toc a:hover {
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--ink);
+  }
+  .toc a.sub {
+    padding: 4px 10px 4px 26px;
+    font-size: 13px;
+    color: var(--ink-48);
+    position: relative;
+  }
+  .toc a.sub::before {
+    content: '';
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    width: 6px;
+    height: 1px;
+    background: var(--ink-30);
+    opacity: 0.5;
+  }
+  .toc a.sub:hover { color: var(--ink-80); }
+
+  /* Main */
+  .content {
+    padding: 0;
+    min-width: 0;
+  }
+  .content-inner {
+    max-width: none;
+    min-width: 0;
+  }
+
+  /* ───────── Doc header ───────── */
+  .doc-header {
+    padding: 80px var(--s-section) 8px;
+    background: var(--canvas);
+  }
+  .doc-header > * {
+    max-width: var(--content-max);
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .eyebrow {
+    font-family: var(--font-text);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-48);
+    margin-bottom: var(--s-sm);
+  }
+  .doc-header h1 {
+    font-family: var(--font-display);
+    font-size: 40px;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.012em;
+    color: var(--ink);
+  }
+
+  /* ───────── Sections ───────── */
+  main section {
+    padding: 72px var(--s-section);
+    margin: 0;
+    scroll-margin-top: calc(var(--nav-h) + 24px);
+    background: var(--canvas);
+  }
+  main section > * {
+    max-width: var(--content-max);
+    margin-left: auto;
+    margin-right: auto;
+  }
+  /* 章节背景交替：偶数 section 用 parchment */
+  main section:nth-of-type(even) {
+    background: var(--parchment);
+  }
+  /* 卡片 surface 永远与章节背景反色 */
+  main section:nth-of-type(even) .flow-canvas,
+  main section:nth-of-type(even) .tbl,
+  main section:nth-of-type(even) .notice,
+  main section:nth-of-type(even) .sub-block {
+    background: var(--canvas);
+  }
+  /* 流程图右滑提示渐变的起点跟随容器底色 */
+  main section:nth-of-type(even) .scroll-hint-pill {
+    background: linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(174, 174, 178, 0.10) 55%,
+      rgba(174, 174, 178, 0.22) 100%
+    );
+  }
+  h2 {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.018em;
+    color: var(--ink);
+    margin-bottom: var(--s-md);
+  }
+  h3 {
+    font-family: var(--font-display);
+    font-size: 21px;
+    font-weight: 600;
+    line-height: 1.24;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+    margin-top: var(--s-xl);
+    margin-bottom: var(--s-sm);
+  }
+  p {
+    font-family: var(--font-text);
+    font-size: 17px;
+    line-height: 1.47;
+    letter-spacing: -0.374px;
+    color: var(--ink-80);
+    margin-bottom: var(--s-sm);
+  }
+  p:last-child { margin-bottom: 0; }
+  strong { font-weight: 600; color: var(--ink); }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ───────── Flow canvas ───────── */
+  .flow-canvas {
+    margin-top: var(--s-lg);
+    margin-bottom: var(--s-md);
+    background: var(--parchment);
+    border-radius: var(--r-lg);
+    padding: 36px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* 右边缘竖排提示条：轻浅渐变 + 仿宋竖排"右滑查看" */
+  .scroll-hint-pill {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 40px;
+    background: linear-gradient(
+      to right,
+      rgba(245, 245, 247, 0) 0%,
+      rgba(174, 174, 178, 0.10) 55%,
+      rgba(174, 174, 178, 0.22) 100%
+    );
+    z-index: 3;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+  .scroll-hint-pill .hint-text {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-family: "FangSong", "STFangsong", "FangSong_GB2312", "Songti SC", "STSong", serif;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--ink-48);
+    letter-spacing: 0.18em;
+    white-space: nowrap;
+  }
+  .flow-canvas.has-overflow:not(.at-end) .scroll-hint-pill {
+    opacity: 1;
+  }
+
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    width: 100%;
+    font-family: var(--font-text);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  .flow::-webkit-scrollbar { height: 6px; }
+  .flow::-webkit-scrollbar-track { background: transparent; }
+  .flow::-webkit-scrollbar-thumb { background: var(--hairline); border-radius: 999px; }
+
+  /* Step (node) */
+  .step {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 9px 16px;
+    border-radius: var(--r-pill);
+    font-family: var(--font-text);
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.35;
+    letter-spacing: -0.2px;
+    background: #fff;
+    color: var(--ink);
+    border: 1px solid var(--hairline);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .step small {
+    color: var(--ink-48);
+    margin-left: 6px;
+    font-size: 12px;
+  }
+  .step--terminal {
+    background: var(--ink);
+    color: #fff;
+    border-color: var(--ink);
+  }
+  .step--decision {
+    border-width: 1.5px;
+    border-color: var(--ink);
+    font-weight: 500;
+  }
+  .step--output {
+    background: var(--parchment);
+    color: var(--ink);
+    border-color: var(--hairline);
+    font-weight: 600;
+  }
+  .step--link {
+    text-decoration: none;
+    color: var(--primary);
+    border-color: var(--hairline);
+    background: #fff;
+    font-weight: 500;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  a.step--link:hover {
+    border-color: var(--primary);
+    color: var(--primary-focus, #0071e3);
+    text-decoration: none;
+  }
+  .step--special {
+    background: var(--ink);
+    color: #fff;
+    border-color: var(--ink);
+    font-weight: 500;
+  }
+  .step--muted {
+    color: var(--ink-48);
+    border-style: dashed;
+  }
+
+  /* Stacked step (multi-line label) */
+  .step--stack {
+    flex-direction: column;
+    padding: 8px 14px;
+    line-height: 1.3;
+  }
+  .step--stack .step-sub {
+    font-size: 11px;
+    color: var(--ink-48);
+    margin-top: 2px;
+  }
+  .step--terminal .step-sub,
+  .step--special .step-sub,
+  .step--output .step-sub { color: rgba(255,255,255,0.72); }
+
+  /* Connector line + arrow */
+  .line {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 28px;
+    height: 1.25px;
+    background: var(--line);
+    position: relative;
+    margin: 0 4px;
+  }
+  .line::after {
+    content: '';
+    position: absolute;
+    right: -1px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid var(--line);
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+  }
+  .line--long { width: 40px; }
+  .line--short { width: 18px; }
+  .line--noarrow { width: 18px; }
+  .line--noarrow::after { display: none; }
+
+  /* Branches (vertical stack) */
+  .branches {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 10px;
+    flex-shrink: 0;
+    position: relative;
+    padding-left: 14px;
+  }
+  .branches::before {
+    /* fork bracket on the left */
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 18px;
+    bottom: 18px;
+    width: 1.25px;
+    background: var(--line);
+  }
+  .branches::after {
+    /* tee at the center (connects to the left arrow) */
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 1.25px;
+    background: var(--line);
+  }
+  .branch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+  }
+  .branch-label {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-48);
+    min-width: 36px;
+    margin-right: 6px;
+    margin-left: 6px;
+  }
+
+  /* Merge bracket (right of branches) */
+  .branches--merge-right { padding-right: 14px; }
+  .branches--merge-right::before {
+    /* keep left bracket */
+  }
+  .branches--merge-right + .line {
+    /* no styling change here; merge handled by extra ::after on container if needed */
+  }
+  /* Optional right merge bracket - use .merge element instead for clarity */
+
+  /* Merge node: visual representation of branches converging */
+  .merge {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    position: relative;
+    width: 14px;
+    height: 60px;
+    margin-right: -2px;
+  }
+  .merge::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 10%;
+    bottom: 10%;
+    width: 1.25px;
+    background: var(--line);
+  }
+  .merge::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 1.25px;
+    background: var(--line);
+  }
+  .merge--tall { height: 90px; }
+  .merge--xtall { height: 120px; }
+
+  /* Vertical stack of paths (for complex states) */
+  .paths {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 16px;
+    flex-shrink: 0;
+    position: relative;
+    padding-left: 14px;
+  }
+  .paths::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 18px;
+    bottom: 18px;
+    width: 1.25px;
+    background: var(--line);
+  }
+  .paths::after {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 1.25px;
+    background: var(--line);
+  }
+  .path {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+  }
+  .path-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-48);
+    margin-left: 6px;
+    margin-right: 6px;
+    min-width: 64px;
+  }
+  .path-tag--wide { min-width: 90px; }
+
+  /* Caption under flow */
+  .flow-caption {
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--ink-48);
+    letter-spacing: -0.224px;
+  }
+
+  /* ───────── Table ───────── */
+  .tbl {
+    margin-top: var(--s-md);
+    margin-bottom: var(--s-md);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-text);
+    font-size: 15px;
+    line-height: 1.43;
+    letter-spacing: -0.224px;
+  }
+  th, td {
+    text-align: left;
+    vertical-align: top;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--divider);
+  }
+  tr:last-child td { border-bottom: none; }
+  th {
+    background: var(--parchment);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-48);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 10px 16px;
+  }
+  td { color: var(--ink-80); }
+  td strong { color: var(--ink); }
+
+  .screenshot {
+    margin-top: 14px;
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-md);
+    background: var(--canvas);
+    overflow: hidden;
+  }
+  .screenshot img {
+    display: block;
+    width: 100%;
+    height: auto;
+    cursor: zoom-in;
+  }
+  .screenshot .caption {
+    margin: 0;
+    padding: 11px 14px 13px;
+    border-top: 1px solid var(--divider);
+    font-size: 14px;
+    line-height: 1.42;
+    letter-spacing: -0.18px;
+    color: var(--ink-48);
+  }
+  .op-unit > .screenshot {
+    margin: 0;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    border-radius: 0;
+  }
+
+  .image-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
+    background: rgba(0,0,0,0.82);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .image-lightbox.open { display: flex; }
+  .image-lightbox img {
+    display: block;
+    max-width: min(100%, 1400px);
+    max-height: calc(100vh - 96px);
+    width: auto;
+    height: auto;
+    border-radius: var(--r-md);
+    background: #fff;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.42);
+  }
+  .image-lightbox-close {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.16);
+    color: #fff;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .image-lightbox-close:hover { background: rgba(255,255,255,0.24); }
+
+  /* ───────── Notice ───────── */
+  .notice {
+    margin-top: var(--s-md);
+    padding: 14px 18px;
+    background: var(--parchment);
+    border-radius: var(--r-md);
+    font-size: 14px;
+    line-height: 1.5;
+    letter-spacing: -0.224px;
+    color: var(--ink-48);
+  }
+
+  /* ───────── Bullet list ───────── */
+  ul.points { list-style: none; margin-top: var(--s-md); }
+  ul.points li {
+    padding: 12px 0;
+    border-top: 1px solid var(--divider);
+    font-family: var(--font-text);
+    font-size: 16px;
+    line-height: 1.5;
+    letter-spacing: -0.224px;
+    color: var(--ink-80);
+  }
+  ul.points li:first-child { border-top: none; }
+
+  /* ───────── Reveal on scroll ───────── */
+  .has-reveal .doc-header,
+  .has-reveal main section {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.85s cubic-bezier(0.32, 0.72, 0, 1),
+                transform 0.85s cubic-bezier(0.32, 0.72, 0, 1);
+    will-change: opacity, transform;
+  }
+  .has-reveal .doc-header.is-in,
+  .has-reveal main section.is-in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .has-reveal .doc-header,
+    .has-reveal main section {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+  }
+
+  /* ───────── Responsive ───────── */
+  @media (max-width: 1024px) {
+    :root { --sidebar-w: 240px; }
+    .content { padding: var(--s-xl) var(--s-xxl); }
+  }
+
+  /* ── Tablet & mobile: sidebar 抽屉 + 流程图保持横向 ── */
+  @media (max-width: 833px) {
+    .doc { grid-template-columns: 1fr; }
+    .nav-toggle { display: inline-flex; }
+
+    .sidebar {
+      position: fixed;
+      top: var(--nav-h);
+      left: 0;
+      width: 280px;
+      max-width: 84vw;
+      height: calc(100vh - var(--nav-h));
+      z-index: 95;
+      transform: translateX(-100%);
+      transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+      border-right: 1px solid var(--hairline);
+      box-shadow: 0 0 0 transparent;
+    }
+    .sidebar.open {
+      transform: translateX(0);
+      box-shadow: 12px 0 32px rgba(0, 0, 0, 0.08);
+    }
+
+    .content { padding: 0; max-width: 100%; }
+    .doc-header { padding: 48px var(--s-lg) 8px; }
+    main section { padding: 48px var(--s-lg); }
+    .doc-header h1 { font-size: 30px; }
+    h2 { font-size: 24px; }
+    h3 { font-size: 18px; margin-top: var(--s-lg); }
+    section { margin-bottom: var(--s-xl); }
+    p { font-size: 16px; }
+
+    /* 流程图保持横向 + 右滑提示 */
+    .flow-canvas { padding: 22px 14px; }
+    .step { padding: 8px 13px; font-size: 13.5px; }
+    .step--stack .step-sub { font-size: 11px; }
+    .line { width: 22px; margin: 0 3px; }
+    .line--long { width: 32px; }
+    .branch-label, .path-tag { font-size: 10.5px; min-width: 30px; margin-left: 4px; margin-right: 4px; }
+    .path-tag--wide { min-width: 70px; }
+    .branches, .paths { gap: 8px; padding-left: 12px; }
+    .merge { width: 12px; height: 56px; }
+    .merge--tall { height: 80px; }
+
+    th, td { padding: 10px 12px; font-size: 14px; }
+    th { font-size: 11px; padding: 9px 12px; }
+  }
+
+  /* ── 小屏手机 ── */
+  @media (max-width: 480px) {
+    .global-nav { padding: 0 12px 0 6px; gap: 8px; }
+    .doc-header { padding: 32px var(--s-md) 4px; }
+    main section { padding: 32px var(--s-md); }
+    .doc-header h1 { font-size: 26px; }
+    h2 { font-size: 21px; }
+    h3 { font-size: 17px; }
+    p { font-size: 15.5px; line-height: 1.55; }
+    .doc-brand { font-size: 18px; }
+
+    .flow-canvas { padding: 18px 12px; border-radius: var(--r-md); }
+    .scroll-hint-pill { width: 32px; }
+    .scroll-hint-pill .hint-text { font-size: 12px; right: 8px; letter-spacing: 0.16em; }
+    .step { padding: 7px 11px; font-size: 13px; }
+    .line { width: 18px; }
+
+    th, td { padding: 9px 10px; font-size: 13px; }
+    th { font-size: 10.5px; }
+    .tbl, .screenshot { border-radius: var(--r-md); }
+  }
+</style>
+</head>
+<body>
+
+<nav class="global-nav">
+  <button class="nav-toggle" id="navToggle" aria-label="目录" aria-controls="sidebar" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+  <span class="global-nav-brand">售后 SOP · 内部文档</span>
+</nav>
+
+<div class="nav-overlay" id="navOverlay"></div>
+
+<div class="doc">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-inner">
+      <div class="doc-brand">售后 SOP</div>
+      <div class="doc-version">v2 · 2026-05</div>
+
+      <nav class="toc">
+          <a href="#overview">整体流程</a>
+
+        <div class="toc-group">
+          <a href="#before">调货前</a>
+          <a href="#after">调货后</a>
+          <a href="#after-states" class="sub">五种状态</a>
+          <a href="#after-main" class="sub">主流程</a>
+          <a href="#after-judge" class="sub">回仓判定</a>
+          <a href="#shipped">发货后</a>
+        </div>
+
+        <div class="toc-group">
+          <a href="#rule-release">库存释放</a>
+          <a href="#rule-residual">剩货记录单</a>
+          <a href="#rule-time">单据生成时点</a>
+          <a href="#rule-confusing">容易混的点</a>
+        </div>
+      </nav>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="content-inner">
+
+      <header class="doc-header">
+        <div class="eyebrow">订单管理 · 售后</div>
+        <h1>售后标准工作流程</h1>
+      </header>
+
+      <section id="overview">
+<h2>整体流程</h2>
+        <p>退换货工单的外部可观察步骤有四步：填写申请、管家审批、业务审批、工单结束。</p>
+        <p>业务审批通过的那一刻，按订单当前阶段走以下三条路径之一。</p>
+
+        <div class="flow-canvas">
+          <div class="flow">
+            <span class="step step--terminal">填写申请</span>
+            <span class="line"></span>
+            <span class="step">管家二次联系审批</span>
+            <span class="line"></span>
+            <span class="step step--decision">业务审批</span>
+
+            <div class="branches">
+              <div class="branch">
+                <span class="branch-label">不通过</span>
+                <span class="line line--long"></span>
+              </div>
+              <div class="branch">
+                <span class="branch-label">通过</span>
+                <span class="line"></span>
+                <span class="step step--decision">阶段</span>
+                <span class="line line--short"></span>
+                <div class="branches">
+                  <div class="branch"><a href="#before" class="step step--link">调货前</a></div>
+                  <div class="branch"><a href="#after" class="step step--link">调货后</a></div>
+                  <div class="branch"><a href="#shipped" class="step step--link">发货后</a></div>
+                </div>
+              </div>
+            </div>
+
+            <span class="merge merge--tall"></span>
+            <span class="step step--terminal">工单结束</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="before">
+<h2>调货前</h2>
+        <p>订单尚未占用任何库存，处理最简单。</p>
+
+        <div class="flow-canvas">
+          <div class="flow">
+            <span class="step step--terminal">业务通过</span>
+            <span class="line"></span>
+            <span class="step step--decision">退款 / 换货</span>
+
+            <div class="branches">
+              <div class="branch">
+                <span class="branch-label">退款</span>
+                <span class="line"></span>
+                <span class="step">修改原订单状态</span>
+                <span class="line"></span>
+                <span class="step step--output">生成退款单</span>
+              </div>
+              <div class="branch">
+                <span class="branch-label">换货</span>
+                <span class="line"></span>
+                <span class="step step--stack">
+                  <span>修改原订单状态</span>
+                  <span class="step-sub">例：尺码 130 → 140</span>
+                </span>
+              </div>
+            </div>
+
+            <span class="merge"></span>
+            <span class="step step--terminal">工单结束</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="after">
+<h2>调货后</h2>
+        <p>订单已经过快速库存判定，处于以下五种状态之一。</p>
+
+        <h3 id="after-states">五种状态</h3>
+        <p>状态差异由「指定发货仓库 / 移仓明细 / 拆换标备注 / 入库明细」四个字段共同决定。</p>
+
+        <div class="tbl">
+          <table>
+            <thead>
+              <tr>
+                <th>编号</th><th>状态</th><th>指定发货仓库</th><th>移仓明细</th><th>拆换标</th><th>入库明细</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>①</td><td>大仓直接锁库存</td><td>空</td><td>—</td><td>—</td><td>—</td></tr>
+              <tr><td>②</td><td>非大仓锁库存</td><td>学校仓</td><td>✓</td><td>—</td><td>—</td></tr>
+              <tr><td>③</td><td>大仓拆换标锁库存</td><td>空</td><td>—</td><td>✓</td><td>✓</td></tr>
+              <tr><td>④</td><td>非大仓拆换标锁库存</td><td>学校仓</td><td>✓</td><td>✓</td><td>—</td></tr>
+              <tr><td>⑤</td><td>库存不足调货中</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 id="after-main">主流程</h3>
+
+        <div class="flow-canvas">
+          <div class="flow">
+            <span class="step step--terminal">业务通过</span>
+            <span class="line"></span>
+            <span class="step step--decision">当前库存状态</span>
+
+            <div class="paths">
+              <div class="path">
+                <span class="path-tag">① / ③</span>
+                <span class="line"></span>
+                <span class="step">释放到大仓</span>
+                <span class="line"></span>
+                <span class="step step--stack">
+                  <span>生成剩货记录单</span>
+                  <span class="step-sub">锁库存区取出重新上架</span>
+                </span>
+              </div>
+              <div class="path">
+                <span class="path-tag">⑤</span>
+                <span class="line"></span>
+                <span class="step">不释放</span>
+                <span class="line"></span>
+                <span class="step step--stack">
+                  <span>生成剩货记录单</span>
+                  <span class="step-sub">调货到货后取出上架</span>
+                </span>
+              </div>
+              <div class="path">
+                <span class="path-tag">② / ④</span>
+                <span class="line"></span>
+                <span class="step step--special">跳转 · 回仓判定</span>
+              </div>
+            </div>
+
+            <span class="merge merge--tall"></span>
+            <span class="step step--decision">退款 / 换货</span>
+
+            <div class="branches">
+              <div class="branch">
+                <span class="branch-label">退款</span>
+                <span class="line"></span>
+                <span class="step step--output">改状态 + 生成退款单</span>
+              </div>
+              <div class="branch">
+                <span class="branch-label">换货</span>
+                <span class="line"></span>
+                <span class="step">修改原订单状态</span>
+              </div>
+            </div>
+
+            <span class="merge"></span>
+            <span class="step step--terminal">工单结束</span>
+          </div>
+        </div>
+
+        <h3 id="after-judge">回仓判定 · 子流程</h3>
+        <p>仅针对 ② / ④ 触发。系统默认把库存释放到大仓，但这两种状态的库存原本来自学校仓——若货物还没发到大仓，统一释放会让学校仓账实不符。</p>
+
+        <div class="flow-canvas">
+          <div class="flow">
+            <span class="step step--terminal">触发 · ② / ④</span>
+            <span class="line"></span>
+            <span class="step step--stack">
+              <span>弹窗</span>
+              <span class="step-sub">货物是否已从学校仓发至大仓</span>
+            </span>
+            <span class="line"></span>
+            <span class="step step--muted">参考依据</span>
+            <span class="line"></span>
+            <span class="step step--decision">审核人选择</span>
+
+            <div class="branches">
+              <div class="branch">
+                <span class="branch-label">未发</span>
+                <span class="line"></span>
+                <span class="step">释放到大仓</span>
+                <span class="line"></span>
+                <span class="step step--output">生成虚拟移仓单</span>
+                <span class="line"></span>
+                <span class="step step--stack">
+                  <span>库存位置</span>
+                  <span class="step-sub">学校仓</span>
+                </span>
+              </div>
+              <div class="branch">
+                <span class="branch-label">已发</span>
+                <span class="line"></span>
+                <span class="step">释放到大仓</span>
+                <span class="line"></span>
+                <span class="step step--stack">
+                  <span>库存位置</span>
+                  <span class="step-sub">大仓</span>
+                </span>
+              </div>
+            </div>
+
+            <span class="merge"></span>
+            <span class="step step--terminal">返回主流程</span>
+          </div>
+        </div>
+
+        <h3>审核参考依据</h3>
+        <div class="tbl">
+          <table>
+            <thead>
+              <tr><th>信号</th><th>未发</th><th>已发</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>移仓单状态</td><td>待发出</td><td>已签收</td></tr>
+              <tr><td>大仓入库记录</td><td>无</td><td>有</td></tr>
+              <tr><td>学校仓当前库存</td><td>&gt; 0</td><td>= 0</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>虚拟移仓单字段</h3>
+        <p>仅在「未发」时生成。</p>
+        <div class="tbl">
+          <table>
+            <thead><tr><th>字段</th><th>取值</th></tr></thead>
+            <tbody>
+              <tr><td>移出仓库</td><td>大仓</td></tr>
+              <tr><td>移入仓库</td><td>原单「指定发货仓库」</td></tr>
+              <tr><td>SKU / 数量</td><td>退换货明细</td></tr>
+              <tr><td>备注</td><td>退换货自动回库_单号_判断人_时间</td></tr>
+              <tr><td>状态</td><td>直接完成</td></tr>
+              <tr><td>标识</td><td>虚拟移仓</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="notice">虚拟移仓单只调整账面库存，不产生实际物流。</div>
+      </section>
+
+      <section id="shipped">
+<h2>发货后</h2>
+        <p>审批角色由业务转交仓库。必须实物收回并入库后才能审批通过。</p>
+
+        <div class="flow-canvas">
+          <div class="flow">
+            <span class="step step--terminal">业务通过 · 转仓库</span>
+            <span class="line"></span>
+            <span class="step">仓库拆快递核对</span>
+            <span class="line"></span>
+            <span class="step step--stack">
+              <span>系统自动核对申请</span>
+              <span class="step-sub">快递单号 + 款号匹配</span>
+            </span>
+            <span class="line"></span>
+            <span class="step">仓库做入库单</span>
+            <span class="line"></span>
+            <span class="step step--decision">仓库审批</span>
+
+            <div class="branches">
+              <div class="branch">
+                <span class="branch-label">退款</span>
+                <span class="line"></span>
+                <span class="step step--output">生成退款单</span>
+              </div>
+              <div class="branch">
+                <span class="branch-label">换货</span>
+                <span class="line"></span>
+                <span class="step step--output">生成新售后出库明细单</span>
+              </div>
+            </div>
+
+            <span class="merge"></span>
+            <span class="step step--terminal">工单结束</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="rule-release">
+<h2>关键规则</h2>
+
+        <h3>库存释放</h3>
+        <div class="tbl">
+          <table>
+            <thead><tr><th>阶段 / 状态</th><th>业务审核通过后释放</th></tr></thead>
+            <tbody>
+              <tr><td>调货前</td><td>—  本就没占用</td></tr>
+              <tr><td>① 大仓直接锁库存</td><td>✅ 释放到大仓</td></tr>
+              <tr><td>② 非大仓锁库存</td><td>✅ 经回仓判定决定</td></tr>
+              <tr><td>③ 大仓拆换标锁库存</td><td>✅ 释放到大仓</td></tr>
+              <tr><td>④ 非大仓拆换标锁库存</td><td>✅ 经回仓判定决定</td></tr>
+              <tr><td>⑤ 库存不足调货中</td><td>❌ 不释放</td></tr>
+              <tr><td>发货后</td><td>❌ 不释放，<strong>库存恢复靠仓库入库单</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="rule-residual">
+<h3>剩货记录单</h3>
+        <div class="tbl">
+          <table>
+            <thead><tr><th>状态</th><th>是否生成</th><th>用途</th></tr></thead>
+            <tbody>
+              <tr><td>① 大仓直接锁库存</td><td>✅</td><td>锁库存区的货发生退换，取出重新上架</td></tr>
+              <tr><td>③ 大仓拆换标锁库存</td><td>✅</td><td>同 ①</td></tr>
+              <tr><td>⑤ 库存不足调货中</td><td>✅</td><td>调货批次到货后取出上架，不要放进锁库存区</td></tr>
+              <tr><td>② 非大仓锁库存</td><td>❌</td><td>由业务通过回仓判定单独处理</td></tr>
+              <tr><td>④ 非大仓拆换标锁库存</td><td>❌</td><td>由业务通过回仓判定单独处理</td></tr>
+              <tr><td>调货前 / 发货后</td><td>❌</td><td>—</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="rule-time">
+<h3>单据生成时点</h3>
+        <div class="tbl">
+          <table>
+            <thead><tr><th>单据</th><th>生成时点</th></tr></thead>
+            <tbody>
+              <tr><td>退款单（调货前 / 调货后）</td><td>业务审核通过时</td></tr>
+              <tr><td>退款单（发货后）</td><td>仓库审批通过时</td></tr>
+              <tr><td>新售后出库明细单</td><td>仅发货后换货生成，仓库审批通过时</td></tr>
+              <tr><td>剩货记录单</td><td>调货后业务审核通过时</td></tr>
+              <tr><td>虚拟移仓单</td><td>② / ④ 且回仓判定「未发」时</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="rule-confusing">
+<h3>容易混的点</h3>
+        <ul class="points">
+          <li>管家二次联系审批是<strong>强制</strong>的，无论家长还是内部填写都要走。</li>
+          <li>调货前 / 调货后的<strong>换货不生成新出库单</strong>，只修改原订单状态。</li>
+          <li>发货后退换货的<strong>"业务审批"由仓库承担</strong>，原因是必须先确认实物入库。</li>
+          <li>业务审核通过<strong>不会释放发货后的库存</strong>，库存恢复完全靠仓库做入库单。</li>
+        </ul>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  (function () {
+    var toggle = document.getElementById('navToggle');
+    var sidebar = document.getElementById('sidebar');
+    var overlay = document.getElementById('navOverlay');
+    if (!toggle || !sidebar || !overlay) return;
+
+    function setOpen(open) {
+      sidebar.classList.toggle('open', open);
+      overlay.classList.toggle('open', open);
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      document.body.style.overflow = open ? 'hidden' : '';
+    }
+
+    toggle.addEventListener('click', function () {
+      setOpen(!sidebar.classList.contains('open'));
+    });
+    overlay.addEventListener('click', function () { setOpen(false); });
+
+    // 点击 sidebar 里的链接后自动关闭
+    sidebar.addEventListener('click', function (e) {
+      var t = e.target;
+      if (t && t.tagName === 'A' && window.matchMedia('(max-width: 833px)').matches) {
+        setOpen(false);
+      }
+    });
+
+    // 窗口变宽后强制关闭抽屉
+    window.addEventListener('resize', function () {
+      if (window.innerWidth > 833) setOpen(false);
+    });
+
+    // Esc 关闭
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && sidebar.classList.contains('open')) setOpen(false);
+    });
+  })();
+
+  /* ─── 滚动 reveal 动效 ─── */
+  (function () {
+    var targets = document.querySelectorAll('.doc-header, main section');
+    if (!targets.length) return;
+
+    if (!('IntersectionObserver' in window)) {
+      // 老浏览器：直接显示
+      targets.forEach(function (el) { el.classList.add('is-in'); });
+      return;
+    }
+
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-in');
+          obs.unobserve(entry.target);
+        }
+      });
+    }, {
+      threshold: 0.08,
+      rootMargin: '0px 0px -6% 0px'
+    });
+
+    targets.forEach(function (el) { obs.observe(el); });
+  })();
+
+  /* ─── Flow canvas 右滑提示 ─── */
+  (function () {
+    var canvases = document.querySelectorAll('.flow-canvas');
+    if (!canvases.length) return;
+
+    function update(canvas) {
+      var scroller = canvas.querySelector('.flow');
+      if (!scroller) return;
+      var hasOverflow = scroller.scrollWidth > scroller.clientWidth + 2;
+      var atEnd = scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 4;
+      canvas.classList.toggle('has-overflow', hasOverflow);
+      canvas.classList.toggle('at-end', atEnd);
+    }
+
+    function updateAll() {
+      canvases.forEach(update);
+    }
+
+    canvases.forEach(function (canvas) {
+      // 注入提示条
+      if (!canvas.querySelector('.scroll-hint-pill')) {
+        var pill = document.createElement('div');
+        pill.className = 'scroll-hint-pill';
+        pill.setAttribute('aria-hidden', 'true');
+        pill.innerHTML = '<span class="hint-text">右滑查看</span>';
+        canvas.appendChild(pill);
+      }
+      var scroller = canvas.querySelector('.flow');
+      if (scroller) {
+        scroller.addEventListener('scroll', function () { update(canvas); }, { passive: true });
+      }
+    });
+
+    // 字体加载完会改变节点宽度，多次重测
+    window.addEventListener('resize', updateAll);
+    window.addEventListener('load', updateAll);
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(updateAll);
+    }
+    requestAnimationFrame(updateAll);
+    setTimeout(updateAll, 300);
+  })();
+
+  /* ─── Screenshot lightbox ─── */
+  (function () {
+    var images = document.querySelectorAll('.screenshot img');
+    if (!images.length) return;
+
+    var lightbox = document.createElement('div');
+    lightbox.className = 'image-lightbox';
+    lightbox.setAttribute('role', 'dialog');
+    lightbox.setAttribute('aria-modal', 'true');
+    lightbox.setAttribute('aria-label', '查看截图');
+    lightbox.innerHTML = '<button class="image-lightbox-close" type="button" aria-label="关闭">×</button><img alt="">';
+    document.body.appendChild(lightbox);
+
+    var lightboxImg = lightbox.querySelector('img');
+    var closeButton = lightbox.querySelector('.image-lightbox-close');
+    var previousOverflow = '';
+
+    function openLightbox(img) {
+      previousOverflow = document.body.style.overflow;
+      lightboxImg.src = img.currentSrc || img.src;
+      lightboxImg.alt = img.alt || '';
+      lightbox.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      closeButton.focus();
+    }
+
+    function closeLightbox() {
+      lightbox.classList.remove('open');
+      lightboxImg.removeAttribute('src');
+      document.body.style.overflow = previousOverflow;
+    }
+
+    images.forEach(function (img) {
+      img.setAttribute('tabindex', '0');
+      img.setAttribute('role', 'button');
+      img.setAttribute('aria-label', (img.alt || '截图') + '，点击放大');
+      img.addEventListener('click', function () { openLightbox(img); });
+      img.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openLightbox(img);
+        }
+      });
+    });
+
+    closeButton.addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', function (e) {
+      if (e.target === lightbox) closeLightbox();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && lightbox.classList.contains('open')) closeLightbox();
+    });
+  })();
+</script>
+
+</body>
+</html>

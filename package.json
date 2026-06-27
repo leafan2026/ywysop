@@ -1,0 +1,11 @@
+{
+  "scripts": {
+    "build:content": "node scripts/build-content-json.mjs",
+    "extract:content": "node scripts/extract-content-from-snapshot.mjs",
+    "build": "npm run build:content && npm run render:html && npm run check",
+    "render:html": "node scripts/render-sop-html.mjs",
+    "render:md": "node scripts/render-workflow-md.mjs",
+    "check": "node scripts/check-docs.mjs"
+  },
+  "devDependencies": {}
+}
